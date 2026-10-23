@@ -1,0 +1,74 @@
+\chapter{Glosario}
+
+\begin{description}[style=nextline,leftmargin=0.6cm]
+  \item[Actitud] Orientación del dron: alabeo, cabeceo y guiñada.
+  \item[Alabeo (roll)] Giro alrededor del eje que va al frente.
+  \item[ArduPilot / ArduCopter] Piloto automático de código abierto; ArduCopter es su versión para multirrotores.
+  \item[Armar] Habilitar los motores para que puedan girar.
+  \item[Batería LiPo] Batería de polímero de litio, ligera y de mucha energía.
+  \item[Brushless] Motor eléctrico sin escobillas, el que usan los drones.
+  \item[Cabeceo (pitch)] Giro alrededor del eje lateral; con él el dron avanza o retrocede.
+  \item[Caja (bounding box)] Rectángulo que marca dónde está un objeto en una imagen.
+  \item[Campo de visión (FOV)] Ángulo que abarca una cámara.
+  \item[Chattering] Vibración de alta frecuencia del control por modos deslizantes.
+  \item[colcon] Herramienta que compila los paquetes de ROS~2.
+  \item[Consigna / referencia] Lo que se quiere que haga el sistema (posición, velocidad).
+  \item[Control en cascada] Un lazo de control dentro de otro: posición afuera, actitud adentro.
+  \item[Convolución] Operación que desliza un filtro pequeño sobre una imagen; base de las redes para imágenes.
+  \item[Cuaternión] Cuatro números que representan una rotación sin singularidades.
+  \item[Dataset] Conjunto de ejemplos para entrenar una red neuronal.
+  \item[DEM] Modelo digital de elevación: tabla con la altura del terreno en una malla.
+  \item[Discretización] Convertir una ley continua en pasos que una computadora puede ejecutar.
+  \item[EKF] Filtro de Kalman extendido: combina sensores para estimar posición y orientación.
+  \item[Empuje] Fuerza hacia arriba que produce una hélice; crece con el cuadrado de su velocidad.
+  \item[ENU / NED] Marcos de referencia: Este-Norte-Arriba (ROS, Gazebo) y Norte-Este-Abajo (aviación).
+  \item[Época] Una pasada completa por todos los datos de entrenamiento.
+  \item[Error RMS] Raíz del promedio de los errores al cuadrado: resume qué tan bien sigue una trayectoria.
+  \item[ESC] Controlador electrónico de velocidad de un motor.
+  \item[Explícito / implícito] Formas de discretizar: con el valor actual o con el futuro.
+  \item[Gazebo] Simulador de robots con física, render y sensores.
+  \item[GCS] Estación de tierra: programa para ver y mandar al dron (MAVProxy, QGroundControl).
+  \item[GUIDED] Modo de ArduPilot en el que obedece órdenes de una computadora.
+  \item[Guiñada (yaw)] Giro alrededor del eje vertical; cambia hacia dónde mira el dron.
+  \item[Hover] Vuelo estacionario: quieto en el aire.
+  \item[IMU] Unidad de medición inercial: acelerómetros y giroscopios.
+  \item[IoU] Intersección sobre unión: qué tanto coinciden dos cajas.
+  \item[Lazo cerrado] Control que mide el resultado y corrige (retroalimentación).
+  \item[Launch] Archivo que arranca varios nodos de ROS con sus parámetros.
+  \item[LiDAR] Sensor que mide distancias con pulsos láser; produce nubes de puntos.
+  \item[mAP] Precisión media promedio: métrica principal de un detector.
+  \item[MAVLink] Protocolo de mensajes entre el dron y la estación de tierra.
+  \item[MAVProxy] Estación de tierra de texto, con consola y mapa.
+  \item[Mezclador] Convierte empuje y pares en velocidades de cada motor.
+  \item[Modos deslizantes (SMC)] Control robusto que lleva al sistema a una superficie y lo hace deslizarse por ella.
+  \item[Momento de inercia] Resistencia de un cuerpo a cambiar su giro.
+  \item[Nodo] Programa de ROS que hace una tarea.
+  \item[Nube de puntos] Conjunto de puntos 3D, como los que da un LiDAR.
+  \item[Odometría] Estimación de la posición y velocidad del robot.
+  \item[Par (torque)] Lo que hace girar un cuerpo: fuerza por distancia.
+  \item[Parámetro] Ajuste de un nodo de ROS, normalmente en un archivo YAML.
+  \item[Periodo de muestreo ($T_s$)] Tiempo entre dos cálculos del controlador.
+  \item[Perturbación] Lo que empuja al sistema fuera de lo deseado (viento, carga).
+  \item[PID] Controlador proporcional, integral y derivativo.
+  \item[Píxel] Cada punto de una imagen digital, con su valor de rojo, verde y azul.
+  \item[Planta] El sistema que se controla (aquí, el dron).
+  \item[Plugin] Programa que se carga dentro de Gazebo para agregar un comportamiento.
+  \item[Precisión / recall] De lo detectado, cuánto es correcto / de lo que hay, cuánto se detecta.
+  \item[QoS] Calidad de servicio de un tópico de ROS (por ejemplo, guardar el último mensaje para quien llegue tarde).
+  \item[ROS 2] Conjunto de herramientas para que los programas de un robot se comuniquen.
+  \item[RTF] Factor de tiempo real: velocidad de la simulación respecto al reloj.
+  \item[SDF] Formato de archivo con el que Gazebo describe robots y mundos.
+  \item[Servicio] Comunicación de pregunta y respuesta en ROS.
+  \item[SITL] El software del piloto automático corriendo en la computadora contra un dron simulado.
+  \item[Sobreajuste] Cuando una red memoriza los ejemplos en lugar de aprender el concepto.
+  \item[Super-twisting (STA)] Modo deslizante de segundo orden con señal de control continua.
+  \item[Superficie deslizante] Conjunto donde $s = 0$; estando en él, el error se va a cero solo.
+  \item[Tópico] Canal con nombre por donde viajan mensajes en ROS.
+  \item[Triangulación] Ubicar un punto cruzando direcciones vistas desde lugares distintos.
+  \item[UAV] Vehículo aéreo no tripulado.
+  \item[VFH] Histograma de campo vectorial: método de evasión que elige un sector libre.
+  \item[WGS84] Modelo de la Tierra que usa el GPS.
+  \item[Workspace] Carpeta donde viven y se compilan los paquetes de ROS (\cod{~/ros2_ws}).
+  \item[YAML] Formato de texto para archivos de configuración.
+  \item[YOLO] Familia de redes neuronales para detectar objetos en tiempo real.
+\end{description}

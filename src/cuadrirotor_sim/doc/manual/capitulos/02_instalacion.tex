@@ -1,0 +1,136 @@
+\chapter{Instalación paso a paso}
+\label{cap:instalacion}
+
+\begin{enpocas}
+Qué hay que instalar y en qué orden: ROS~2 y Gazebo, el espacio de trabajo con nuestros paquetes, ArduPilot, el entorno de YOLO y las herramientas de CAD. Cada paso es un script que ya quedó en la carpeta personal.
+\end{enpocas}
+
+La instalación se hizo con cuatro scripts que quedaron en la carpeta personal
+(\cod{~/instalar_ros2_gazebo.sh}, \cod{~/instalar_ardupilot.sh}, \cod{~/instalar_vision_yolo.sh}
+y \cod{~/ardupilot_sitl.sh}). Esta sección explica qué hace cada uno y en qué orden se corren.
+
+\section{ROS 2 Jazzy y Gazebo Harmonic}
+
+\begin{lstlisting}[style=bash]
+sudo bash ~/instalar_ros2_gazebo.sh
+\end{lstlisting}
+
+El script:
+\begin{enumerate}
+  \item agrega el repositorio \emph{universe} y el paquete \cod{ros2-apt-source} (que configura
+        el repositorio oficial de ROS~2 para Ubuntu Noble);
+  \item instala \cod{ros-jazzy-desktop}, \cod{ros-dev-tools}, el puente \cod{ros-jazzy-ros-gz}
+        (trae Gazebo Harmonic), \cod{ros-jazzy-actuator-msgs}, \cod{ros-jazzy-xacro},
+        PlotJuggler, el almacenamiento MCAP de \emph{rosbag2}, \cod{colcon} y numpy, scipy,
+        matplotlib y pandas;
+  \item inicializa \cod{rosdep}.
+\end{enumerate}
+
+Después, en cada terminal (o en \cod{~/.bashrc}):
+\begin{lstlisting}[style=bash]
+source /opt/ros/jazzy/setup.bash
+\end{lstlisting}
+
+Comprobación rápida: \cod{gz sim shapes.sdf} debe abrir Gazebo con unas figuras, y
+\cod{ros2 topic list} debe responder.
+
+\section{Espacio de trabajo}
+
+\begin{lstlisting}[style=bash]
+git clone https://github.com/jairoroke/Monitoreo-de-incendios-en-un-vehiculo-aereo-no-tripulado.git ~/ros2_ws
+# Solo para controlador:=ardupilot (plugin de ArduPilot para Gazebo):
+git clone https://github.com/ArduPilot/ardupilot_gazebo.git ~/ros2_ws/src/ardupilot_gazebo
+
+cd ~/ros2_ws
+export GZ_VERSION=harmonic
+colcon build --symlink-install
+source install/setup.bash
+\end{lstlisting}
+
+\cod{--symlink-install} enlaza los archivos de Python, los \emph{launch} y los YAML en lugar de
+copiarlos: un cambio en \cod{src/} se ve sin volver a compilar (hay que recompilar solo si se
+agrega un ejecutable nuevo en \cod{setup.py} o se cambia código C++). El espacio tiene dos
+paquetes propios:
+
+\begin{description}
+  \item[\cod{cuadrirotor_sim}] (Python, \emph{ament\_python}): modelos, mundos, controladores,
+        planificador, detector, \emph{launch}, scripts y pruebas.
+  \item[\cod{cuadrirotor_gz_plugins}] (C++): dos sistemas de Gazebo, \cod{FuerzaViento} (fuerza
+        externa de viento) y \cod{ComandosMotores} (para ArduPilot, sección~\ref{sec:plugin-ap}).
+\end{description}
+
+\section{ArduPilot SITL}
+\label{sec:inst-ardupilot}
+
+ArduCopter 4.7.2 se compila para SITL (\emph{software in the loop}) en \cod{~/ardupilot}:
+
+\begin{lstlisting}[style=bash]
+git clone --recurse-submodules https://github.com/ArduPilot/ardupilot.git ~/ardupilot
+cd ~/ardupilot && git checkout Copter-4.7.2 && git submodule update --init --recursive
+bash ~/instalar_ardupilot.sh          # como usuario normal, NO con sudo
+./waf configure --board sitl && ./waf copter
+\end{lstlisting}
+
+\cod{instalar_ardupilot.sh} corre \cod{Tools/environment_install/install-prereqs-ubuntu.sh}
+con dos variables que evitan conflictos con ROS:
+\cod{DO_PYTHON_VENV_ENV=0} (no activar el entorno de Python de ArduPilot en cada terminal; chocaría
+con el \cod{python3} de ROS) y \cod{DO_AP_STM_ENV=0} (no instalar el compilador para placas STM32).
+Crea el entorno \cod{~/venv-ardupilot} con MAVProxy y pymavlink, e instala las bibliotecas de
+GStreamer que necesita el plugin \cod{ardupilot_gazebo}. El binario queda en
+\cod{~/ardupilot/build/sitl/bin/arducopter}.
+
+En \cod{~/.bashrc} quedaron:
+\begin{lstlisting}[style=bash]
+export GZ_VERSION=harmonic
+export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/ros2_ws/install/ardupilot_gazebo/lib/ardupilot_gazebo:${GZ_SIM_SYSTEM_PLUGIN_PATH}
+export GZ_SIM_RESOURCE_PATH=$HOME/ros2_ws/install/ardupilot_gazebo/share/ardupilot_gazebo/models:$HOME/ros2_ws/install/ardupilot_gazebo/share/ardupilot_gazebo/worlds:${GZ_SIM_RESOURCE_PATH}
+export PATH=$HOME/ardupilot/Tools/autotest:$PATH
+\end{lstlisting}
+
+Prueba del SITL con el Iris de ejemplo (sin nuestra simulación):
+\begin{lstlisting}[style=bash]
+bash ~/ardupilot_sitl.sh              # iris_runway.sdf + sim_vehicle.py --console --map
+\end{lstlisting}
+
+Para la ventana que acomoda las ventanas del SITL (sección~\ref{sec:ventanas}) se agregó
+\cod{python-xlib} al entorno de ArduPilot:
+\begin{lstlisting}[style=bash]
+~/venv-ardupilot/bin/pip install python-xlib
+\end{lstlisting}
+
+\section{Visión: YOLO26}
+
+\begin{lstlisting}[style=bash]
+bash ~/instalar_vision_yolo.sh        # descarga ~3 GB
+\end{lstlisting}
+
+Crea \cod{~/.venvs/yolo} con \cod{--system-site-packages} (el detector necesita ver los paquetes de
+ROS~2) e instala \cod{ultralytics} con PyTorch y CUDA. Fija tres versiones:
+\begin{itemize}
+  \item \cod{numpy<2}: los mensajes de ROS~2 Jazzy están compilados con numpy 1.x;
+  \item \cod{opencv-python<4.12}: las versiones nuevas exigen numpy 2;
+  \item \cod{setuptools<80}: lo que acepta \cod{colcon}.
+\end{itemize}
+Al final comprueba que PyTorch vea la GPU y que \cod{rclpy} se importe desde el entorno.
+
+\section{Herramientas de CAD y generación de mundos}
+
+La conversión del CAD del Tarot y la generación del terreno usan bibliotecas que no vienen con
+ROS. Van en un entorno aparte:
+\begin{lstlisting}[style=bash]
+python3 -m venv --without-pip ~/.venvs/cad
+curl -sSL https://bootstrap.pypa.io/get-pip.py | ~/.venvs/cad/bin/python
+~/.venvs/cad/bin/pip install cascadio trimesh numpy fast_simplification pillow scipy matplotlib
+\end{lstlisting}
+
+\begin{nota}
+Se intentó primero convertir el STEP con \emph{gmsh}, pero tardaba más de 15 minutos;
+\cod{cascadio} (teselador de OpenCASCADE) con \cod{trimesh} lo hace en segundos.
+\end{nota}
+
+\section{Comprobación de la instalación}
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws/src/cuadrirotor_sim && python3 -m pytest -q test/     # 31 pruebas
+ros2 launch cuadrirotor_sim simulacion.launch.py                    # cuadrirrotor en hover
+\end{lstlisting}

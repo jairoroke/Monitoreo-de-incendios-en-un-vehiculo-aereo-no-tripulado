@@ -1,0 +1,89 @@
+\chapter{El proyecto de un vistazo}
+
+Este libro documenta, paso a paso, cómo se construyó la simulación de monitoreo de incendios:
+desde la instalación del software hasta la misión autónoma en la que un cuadrirrotor
+Tarot Ironman 650 recorre un bosque, encuentra un incendio con una cámara y una red neuronal,
+envía sus coordenadas GPS y lo orbita. Todo el desarrollo se hizo entre el 21 y el 23 de
+octubre de 2026 en el espacio de trabajo \cod{~/ros2_ws}.
+
+\section{Qué hace la simulación}
+
+\begin{itemize}
+  \item \textbf{Planta.} Gazebo Harmonic simula la física del dron: cuerpo rígido, cuatro
+        motores de primer orden con empuje $f_i = k_f\omega_i^2$, una cámara, una IMU y un
+        LiDAR 3D. Hay dos vehículos: un cuadrirrotor genérico en ``+'' y el Tarot 650 en ``X'',
+        cuya geometría viene de su CAD.
+  \item \textbf{Control.} Tres alternativas intercambiables: un PD en cascada (línea base),
+        el super-twisting adaptativo (STA) con tres discretizaciones (explícita,
+        semi-implícita e implícita) y el piloto automático ArduCopter 4.7.2 en SITL.
+  \item \textbf{Mundos.} Tres escenarios: \cod{incendio} (plano), \cod{bosque} (85 árboles) y
+        \cod{bosque_grande}: un valle de $420\times420$~m rodeado de montañas, con 1700 árboles,
+        140 rocas, 21 animales, cielo y un incendio con humo.
+  \item \textbf{Percepción.} YOLO26n ajustado con 6000 imágenes del simulador detecta
+        \emph{fuego} y \emph{humo} en la cámara del dron.
+  \item \textbf{Autonomía.} El nodo \cod{busqueda_incendio} despega, barre el bosque en
+        serpentina siguiendo el relieve, evita obstáculos con el LiDAR, estima la posición del
+        foco, lo confirma con las llamas, avisa con las coordenadas GPS y lo orbita.
+\end{itemize}
+
+\section{Arquitectura}
+
+La figura~\ref{fig:arquitectura} muestra los nodos y los tópicos principales. La cadena completa es
+\emph{imagen $\rightarrow$ detección $\rightarrow$ estimación $\rightarrow$
+referencia $\rightarrow$ control}. El planificador nunca usa la posición verdadera del foco:
+solo lo que reporta el detector.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  nodo/.style={draw,rounded corners,fill=#1,minimum width=3.1cm,minimum height=1cm,align=center,font=\small},
+  nodo/.default=white,
+  flecha/.style={-{Stealth[length=2.5mm]},thick},
+  et/.style={font=\scriptsize\ttfamily,fill=white,inner sep=1pt}]
+  \node[nodo=orange!15,minimum width=4.2cm,minimum height=2.2cm] (gz) at (0,0)
+       {\textbf{Gazebo Harmonic}\\ física, motores, cámara,\\ IMU, LiDAR, mundo};
+  \node[nodo=black!5] (puente) at (0,-2.4) {\cod{ros_gz_bridge}\\(\cod{puente.yaml})};
+  \node[nodo=blue!10] (yolo) at (-5,-4.6) {\cod{detector_yolo}\\YOLO26n (GPU)};
+  \node[nodo=green!12,minimum width=4cm] (bus) at (0,-6.6) {\cod{busqueda_incendio}\\planificador autónomo};
+  \node[nodo=red!10] (ctl) at (5,-4.6) {\cod{controlador_sta}\\ o \cod{controlador_pd}};
+  \node[nodo=red!10] (ap) at (5,-8.6) {\cod{mision_ardupilot}\\+ ArduCopter SITL};
+  \node[nodo=black!5] (fauna) at (-6.2,0) {\cod{fauna}\\(gz-transport)};
+  \node[nodo=black!5] (viento) at (6.2,0) {\cod{viento}};
+  \node[nodo=yellow!15] (alerta) at (-4.5,-8.6) {aviso GPS\\\cod{/cuadrirotor/incendio/*}};
+
+  \draw[flecha] (gz) -- (puente);
+  \draw[flecha] (puente) -| node[et,pos=0.75]{camara} (yolo);
+  \draw[flecha] (yolo) |- node[et,pos=0.3]{detecciones} (bus);
+  \draw[flecha] (puente) -- node[et]{odometria, lidar/points} (bus);
+  \draw[flecha] (bus) -| node[et,pos=0.3]{consigna} (ctl);
+  \draw[flecha] (bus) -| node[et,pos=0.3]{consigna} (ap);
+  \draw[flecha] (ctl) |- node[et,pos=0.75]{motores} (puente);
+  \draw[flecha] (ap.east) -- ++(2.6,0) |- node[et,pos=0.25,rotate=90]{MAVLink / JSON} ([yshift=-7mm]gz.east);
+  \draw[flecha] (fauna) -- node[et,above=1pt]{set\_pose\_vector} (gz);
+  \draw[flecha] ([yshift=3mm]viento.west) -- node[et,above=1pt]{viento} ([yshift=3mm]gz.east);
+  \draw[flecha] (bus.south) |- (alerta.east);
+\end{tikzpicture}
+\caption{Nodos y tópicos de la misión de búsqueda. Con \cod{controlador:=sta} o \cod{pd} la
+consigna la sigue el controlador de ROS~2; con \cod{controlador:=ardupilot}, la reenvía
+\cod{mision_ardupilot} a ArduCopter por MAVLink.}
+\label{fig:arquitectura}
+\end{figure}
+
+\section{Convenciones}
+
+\begin{itemize}
+  \item \textbf{Marco del mundo:} ENU (\emph{x} al este, \emph{y} al norte, \emph{z} arriba), en
+        metros. ArduPilot usa NED: $N = y$, $E = x$, $D = -z$ y la guiñada NED es
+        $\pi/2 - \psi$.
+  \item \textbf{Marco del cuerpo:} \emph{x} al frente, \emph{y} a la izquierda, \emph{z} arriba.
+  \item El modelo del dron se llama siempre \cod{cuadrirotor} dentro de Gazebo, sin importar
+        el vehículo; así los tópicos no cambian.
+  \item Rutas: el paquete principal está en \cod{~/ros2_ws/src/cuadrirotor_sim}; salvo que se
+        diga otra cosa, las rutas relativas son respecto a él.
+\end{itemize}
+
+\section{Equipo usado}
+
+Ubuntu 24.04 (Noble), ROS~2 Jazzy, Gazebo Harmonic (gz-sim 8), ArduCopter 4.7.2 y una GPU
+NVIDIA RTX 5060 Ti (YOLO corre en la GPU y Gazebo renderiza con EGL de NVIDIA). Con este equipo
+el mundo grande corre a tiempo real (factor $\approx 1.0$; $\approx 0.8$ con el LiDAR).

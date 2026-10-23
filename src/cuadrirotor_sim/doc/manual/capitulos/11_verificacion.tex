@@ -1,0 +1,90 @@
+\chapter{Cómo se verificó, qué falló y qué falta}
+
+\begin{enpocas}
+Las pruebas automáticas, los resultados de las búsquedas, la lista de problemas que aparecieron durante el desarrollo y lo que queda por hacer.
+\end{enpocas}
+
+\section{Pruebas unitarias}
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws/src/cuadrirotor_sim && python3 -m pytest -q test/
+...............................                                     [100%]
+31 passed
+\end{lstlisting}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{3.5cm}p{11.6cm}}
+\toprule
+\textbf{Archivo} & \textbf{Qué comprueba} \\ \midrule \endhead
+\cod{test_dinamica.py} & mezclador, rotaciones, referencia de las misiones \\
+\cod{test_sta.py} & solución implícita, convergencia de los tres esquemas, banda con perturbación \\
+\cod{test_terreno.py} & interpolación del DEM, corte de rayos, rutas de barrido (franjas y serpentina), cobertura \\
+\cod{test_geo.py} & conversión ENU $\rightarrow$ WGS84 (origen, distancias norte y este, altura, grados-minutos-segundos) \\
+\cod{test_evasion.py} & camino libre sin cambios, descarte del suelo, rodear un árbol, cruzar entre árboles, subir sin salida, no bajar dentro de las copas, olvidar lo lejano \\
+\bottomrule
+\end{longtable}
+
+\section{Resultados de la búsqueda}
+
+Todas con el Tarot 650, sin viento y con el YOLO reentrenado. Altura sobre el suelo durante el
+vuelo con el STA: mediana 30.3~m, mínima 13.9~m (sobre la ladera del anillo de órbita); error de
+seguimiento 5~cm RMS (máximo 22~cm).
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{llllll}
+\toprule
+\textbf{Control} & \textbf{Foco} & \textbf{Ruta} & \textbf{Estimación final} & \textbf{Patrulla $\rightarrow$ órbita} & \textbf{Cobertura} \\ \midrule
+STA & $(105, 135)$ & franjas & $(105.1, 135.0)$ & 2 min 42 s & 60\,\% \\
+STA & $(-150, 60)$ & franjas & $(-150.0, 59.9)$ & 1 min 8 s & 29\,\% \\
+STA + LiDAR & $(105, 135)$ & franjas & $(105.2, 135.0)$ & --- & 53\,\% \\
+ArduPilot & $(105, 135)$ & serpentina & $(105.1, 135.0)$ & --- & 79\,\% \\
+\bottomrule
+\end{tabular}
+\caption{Búsquedas en \cod{bosque_grande} (23 de octubre). En el mundo \cod{bosque} la búsqueda
+estima $(8.3, 5.2)$ con el foco en $(8,5)$.}
+\end{table}
+
+\section{Problemas encontrados}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{5cm}p{10cm}}
+\toprule
+\textbf{Síntoma} & \textbf{Causa y solución} \\ \midrule \endhead
+Gazebo se cae (\emph{segfault} en \cod{OdeMesh::fillArrays}) &
+Mallas OBJ de colisión sin normales. Exportarlas con normales. \\
+YOLO detecta ``fuego'' en una roca oscura &
+El modelo solo conocía el bosque plano. Dataset del mundo grande con tomas de rocas y animales;
+reentrenar con los dos. \\
+La primera estimación del foco se va hasta 50~m &
+De lejos el rayo de las llamas roza el suelo. Usar solo cortes a menos de 100~m. \\
+Con ArduPilot, humo en rumbos extraños y choque contra un cerro &
+Se restaba el punto de salida a consignas que ya estaban en el marco del mundo. Medir el desfase
+con MAVLink; \emph{home} = origen del mundo. \\
+Se confirma un foco a 70~m del verdadero &
+Bastaba la triangulación del humo. Estado \emph{verificacion}: solo con llamas se confirma. \\
+La terminal de comandos de MAVProxy no se ve &
+Quedaba tapada por las demás ventanas. \cod{ventanas_sitl.py} las acomoda. \\
+Tras Ctrl-C quedan \cod{gz sim}, MAVProxy y ArduCopter &
+El envoltorio de ruby no reenvía la señal. Manejador \cod{OnShutdown} en el \emph{launch}. \\
+La evasión oscila cada 20~ms entre desviarse y no &
+Sin histéresis. Volver al tramo recto solo con $1.4\,r$ libre. \\
+Conversión del STEP muy lenta &
+\emph{gmsh} tardaba más de 15~min. \cod{cascadio} + \cod{trimesh}. \\
+\bottomrule
+\end{longtable}
+
+\begin{aviso}
+Al detener simulaciones a mano no se debe usar \cod{pkill -f} con un patrón que también aparezca en
+la propia orden: el comando se mata a sí mismo. Es mejor listar los procesos y terminarlos por PID.
+Y matar \cod{gz sim} en general cierra también cualquier otra simulación abierta.
+\end{aviso}
+
+\section{Pendientes}
+
+\begin{enumerate}
+  \item \textbf{Datos reales del Tarot}: masa con batería, inercias, $k_f$, $k_m$ (KV del motor,
+        hélice, celdas) y retardos. Hoy son supuestos (tabla~\ref{tab:tarot}).
+  \item Modelo del error de detección, métricas de banda y de energía, y barridos de $T_s$ y
+        de $k$.
+  \item Probar la evasión con obstáculos más altos que la altura de búsqueda y con viento.
+  \item Reentrenar YOLO con imágenes reales (por ejemplo, D-Fire) antes de volar el dron físico.
+\end{enumerate}

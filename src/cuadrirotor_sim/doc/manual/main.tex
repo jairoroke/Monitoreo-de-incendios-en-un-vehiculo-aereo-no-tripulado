@@ -1,0 +1,122 @@
+% Drones, control y visión para principiantes: la simulación del Tarot 650
+% que busca incendios. Compila con pdfLaTeX (por omisión en Overleaf), XeLaTeX o LuaLaTeX.
+\documentclass[11pt,letterpaper,oneside,openany]{book}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+\usepackage[spanish,es-noshorthands,es-tabla]{babel}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,array,longtable}
+\usepackage{enumitem}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.misc,fit,calc,decorations.pathmorphing}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{xurl}
+\usepackage[colorlinks=true,linkcolor=NavyBlue,urlcolor=NavyBlue,citecolor=NavyBlue]{hyperref}
+
+\graphicspath{{figuras/}}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{3em}
+\captionsetup{font=small,labelfont=bf}
+\urlstyle{tt}
+
+% Rutas, archivos, nodos y tópicos en monoespaciado (con _ y / sin escapar).
+\newcommand{\cod}[1]{\expandafter\nolinkurl\expandafter{\detokenize{#1}}}
+\newcommand{\sgn}{\operatorname{sgn}}
+\newcommand{\Sgn}{\operatorname{Sgn}}
+
+\lstset{basicstyle=\ttfamily\footnotesize,columns=fullflexible,keepspaces=true,breaklines=true,
+        frame=single,rulecolor=\color{black!25},backgroundcolor=\color{black!3},
+        xleftmargin=4pt,xrightmargin=4pt,aboveskip=6pt,belowskip=6pt,
+        showstringspaces=false,upquote=true,
+        literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+                 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+                 {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ü}{{\"u}}1 {¿}{{?`}}1 {¡}{{!`}}1
+                 {°}{{$^\circ$}}1 {²}{{$^2$}}1 {·}{{$\cdot$}}1 {→}{{$\rightarrow$}}1
+                 {×}{{$\times$}}1 {±}{{$\pm$}}1 {—}{{---}}1 {–}{{--}}1}
+\lstdefinestyle{bash}{language=bash,morekeywords={ros2,colcon,source,sudo,git,gz,python3}}
+\lstdefinestyle{py}{language=Python,keywordstyle=\color{NavyBlue}\bfseries,commentstyle=\color{black!55}\itshape,
+                    stringstyle=\color{BrickRed}}
+\lstdefinestyle{xml}{language=XML,keywordstyle=\color{NavyBlue},stringstyle=\color{BrickRed}}
+
+% Recuadros del libro.
+\tcbset{enhanced,breakable,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries}
+\newtcolorbox{nota}{colback=NavyBlue!4,colframe=NavyBlue!70!black,title=Nota}
+\newtcolorbox{aviso}{colback=BrickRed!5,colframe=BrickRed!70!black,title=Cuidado}
+\newtcolorbox{leccion}{colback=ForestGreen!5,colframe=ForestGreen!70!black,title=Problema encontrado y cómo se resolvió}
+\newtcolorbox{recuerda}{colback=Goldenrod!10,colframe=Goldenrod!80!black,title=Recuerda}
+\newtcolorbox{consejo}{colback=Cyan!5,colframe=Cyan!60!black,title=Consejo}
+\newtcolorbox{tecnico}{colback=black!3,colframe=black!45,title=Para curiosos (te lo puedes saltar)}
+\newtcolorbox{ejemplo}[1][]{colback=Orchid!5,colframe=Orchid!70!black,title=Ejemplo de la vida diaria#1}
+\newtcolorbox{ejercicio}{colback=Peach!8,colframe=Peach!80!black,title=Pruébalo tú}
+\newtcolorbox{enpocas}{colback=ForestGreen!4,colframe=ForestGreen!50!black,title=En este capítulo}
+
+\title{\textbf{Drones, control y visión}\\[4pt]
+\textbf{para principiantes}\\[10pt]
+\Large Cómo se construyó la simulación del Tarot Ironman 650\\ que busca incendios forestales por sí solo\\[8pt]
+\large ROS 2 Jazzy · Gazebo Harmonic · ArduPilot SITL · YOLO26}
+\author{Dr.\ Jairo Olguín Roque\\
+FES Acatlán, UNAM}
+\date{Octubre de 2026}
+
+\begin{document}
+\frontmatter
+\maketitle
+\tableofcontents
+\input{capitulos/c00_como_usar}
+
+\mainmatter
+\part{Antes de despegar: lo básico}
+\input{capitulos/01_introduccion}
+\input{capitulos/c01_dron}
+\input{capitulos/c02_fisica}
+\input{capitulos/c03_simulacion}
+\input{capitulos/c04_ros}
+
+\part{El control: mantener el dron donde queremos}
+\input{capitulos/c05_control_basico}
+\input{capitulos/c06_modos_deslizantes}
+\input{capitulos/c07_discretizacion}
+\input{capitulos/05_control}
+
+\part{Ver el mundo: visión computacional}
+\input{capitulos/c08_vision}
+\input{capitulos/c09_redes}
+\input{capitulos/07_vision}
+
+\part{Construir la simulación}
+\input{capitulos/02_instalacion}
+\input{capitulos/03_estructura}
+\input{capitulos/04_tarot}
+\input{capitulos/06_mundos}
+
+\part{La autonomía: buscar el incendio sin piloto}
+\input{capitulos/c10_autonomia}
+\input{capitulos/08_autonomia}
+\input{capitulos/c11_autopiloto}
+\input{capitulos/09_ardupilot}
+
+\part{Manos a la obra}
+\input{capitulos/c12_primer_vuelo}
+\input{capitulos/10_uso}
+\input{capitulos/11_verificacion}
+
+\appendix
+\input{capitulos/c13_glosario}
+\input{capitulos/A_apendices}
+
+\end{document}

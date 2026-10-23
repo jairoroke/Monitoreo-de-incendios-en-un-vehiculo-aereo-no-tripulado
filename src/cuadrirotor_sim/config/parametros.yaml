@@ -1,0 +1,37 @@
+# Parámetros de misión y ganancias. Los del vehículo (masa, inercia, rotores,
+# lazo de actitud) están en config/vehiculo_<vehiculo>.yaml, generados por
+# scripts/generar_modelo.py.
+/**:
+  ros__parameters:
+    # Misión
+    altura: 3.0
+    foco: [8.0, 5.0]
+    radio: 4.0
+    omega: 0.3
+
+controlador_pd:
+  ros__parameters:
+    kp_pos: [4.0, 4.0, 6.0]
+    kd_pos: [3.0, 3.0, 4.0]
+
+controlador_sta:
+  ros__parameters:
+    lambda: [1.5, 1.5, 2.0]       # s = e' + lambda e
+    k1_0: 1.0                     # ganancia inicial
+    eps: 1.0                      # k2 = 2 eps k1
+    w1: 2.0                       # tasa de adaptación: w1 sqrt(g1/2)
+    g1: 1.0
+    # mu (umbral de adaptación) y k1_max dependen del vehículo: están en
+    # config/vehiculo_<vehiculo>.yaml.
+    k1_min: 0.5
+    eta: 0.1
+    adaptativo: true
+    estimar_perturbacion: false
+
+viento:
+  ros__parameters:
+    fuerza_media: 1.0
+    amplitud: 0.5
+    frecuencia: 0.2
+    direccion: 0.0
+    t_inicio: 15.0

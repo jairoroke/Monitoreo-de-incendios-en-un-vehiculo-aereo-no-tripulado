@@ -1,0 +1,94 @@
+\chapter{¿Qué es un piloto automático? ArduPilot y MAVLink}
+\label{cap:autopiloto}
+
+\begin{enpocas}
+Qué hace el software de un controlador de vuelo, qué son los modos de vuelo, por qué el dron tiene que
+``armarse'', qué es el EKF, cómo se comunica con tierra (MAVLink) y para qué sirve una estación de
+tierra.
+\end{enpocas}
+
+\section{El software del controlador de vuelo}
+
+Los drones reales no corren un controlador escrito desde cero: usan un \textbf{piloto automático} de
+código abierto ya probado en millones de horas de vuelo. Los dos más usados son \textbf{ArduPilot}
+(su versión para multirrotores se llama ArduCopter) y \textbf{PX4}. Hacen todo lo de los capítulos
+anteriores y más:
+\begin{itemize}
+  \item estiman dónde está el dron y cómo está orientado combinando sensores;
+  \item controlan posición, velocidad y actitud (con PID en cascada);
+  \item ofrecen modos de vuelo, misiones con puntos de paso y regreso a casa;
+  \item vigilan la seguridad: batería, señal de radio, GPS, geocercas.
+\end{itemize}
+Aquí se usa ArduCopter 4.7.2 como \textbf{referencia}: comparar el STA contra un piloto
+automático profesional es más convincente que compararlo solo contra un PD hecho en casa.
+
+\section{Modos de vuelo}
+
+ArduCopter tiene más de veinte modos. Los que aparecen en este proyecto:
+\begin{description}
+  \item[STABILIZE:] el piloto controla la inclinación con la palanca; el dron solo se mantiene
+        nivelado.
+  \item[LOITER:] el dron se queda en su lugar usando el GPS.
+  \item[GUIDED:] el dron obedece órdenes de una computadora (``ve a este punto'', ``mantén esta
+        velocidad''). Es el que usa nuestra misión.
+  \item[RTL] (\emph{return to launch}): regresa a donde despegó y aterriza.
+  \item[LAND:] aterriza donde está.
+\end{description}
+
+\section{Armar el dron}
+
+Por seguridad, los motores no giran hasta que el dron se \textbf{arma}. Antes de permitirlo, ArduPilot
+revisa (\emph{pre-arm checks}) que los sensores estén calibrados, que el GPS tenga buena señal, que la
+batería esté bien y que el estimador esté listo. Por eso la misión con ArduPilot espera unos 30
+segundos antes de despegar.
+
+\section{El EKF: adivinar bien dónde estoy}
+
+Ningún sensor es perfecto: el GPS da la posición con metros de error y pocas veces por segundo; la IMU
+es rápida pero sus errores se acumulan; el barómetro deriva con el clima. El \textbf{filtro de Kalman
+extendido} (EKF) los combina: predice con la IMU y corrige con el GPS, el barómetro y la brújula,
+pesando cada uno según su confianza. ArduPilot usa la versión EKF3.
+
+\begin{ejemplo}
+Caminar con los ojos cerrados contando pasos (la IMU) te lleva más o menos a donde quieres, pero el
+error crece. Si de vez en cuando abres los ojos un instante (el GPS), corriges. El EKF hace eso
+cientos de veces por segundo.
+\end{ejemplo}
+
+\section{MAVLink: el idioma de los drones}
+
+\textbf{MAVLink} es el protocolo con el que el piloto automático habla con el exterior: mensajes
+pequeños y bien definidos como \cod{HEARTBEAT} (``sigo vivo''), \cod{GLOBAL_POSITION_INT} (posición
+GPS), \cod{COMMAND_LONG} (``despega'') o \cod{SET_POSITION_TARGET_LOCAL_NED} (``ve a este punto'').
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[blq/.style={draw,rounded corners,fill=#1,minimum width=3cm,minimum height=1.1cm,align=center,font=\small},
+  fl/.style={{Stealth[length=2.2mm]}-{Stealth[length=2.2mm]},thick}]
+  \node[blq=orange!15] (gz) at (0,0) {Gazebo\\(física, sensores)};
+  \node[blq=red!10] (ap) at (4.5,0) {ArduCopter SITL\\(EKF, control, modos)};
+  \node[blq=black!5] (mp) at (9,0) {MAVProxy\\(estación de tierra)};
+  \node[blq=green!12] (mi) at (9,-2.4) {\cod{mision_ardupilot}\\(nuestra misión)};
+  \node[blq=green!12] (bus) at (4.5,-2.4) {\cod{busqueda_incendio}};
+  \node[blq=blue!8] (qgc) at (13,0) {QGroundControl\\(opcional)};
+  \draw[fl] (gz) -- node[above,font=\scriptsize]{JSON / UDP} (ap);
+  \draw[fl] (ap) -- node[above,font=\scriptsize]{MAVLink} (mp);
+  \draw[fl] (mp) -- node[right,font=\scriptsize]{MAVLink (UDP 14551)} (mi);
+  \draw[fl] (mp) -- node[above,font=\scriptsize]{UDP 14550} (qgc);
+  \draw[-{Stealth[length=2.2mm]},thick] (bus) -- node[above,font=\scriptsize]{consigna (ROS 2)} (mi);
+\end{tikzpicture}
+\caption{Cómo se conectan las piezas al volar con ArduPilot SITL.}
+\end{figure}
+
+\section{Estación de tierra}
+
+Una \textbf{estación de tierra} (GCS) es el programa con el que una persona ve y manda al dron:
+mapa, telemetría, botones para cambiar de modo. Usamos \textbf{MAVProxy}, que trae consola, mapa y
+un prompt donde se escriben comandos (\cod{mode GUIDED}, \cod{arm throttle}, \cod{mode RTL}...).
+También se puede conectar QGroundControl por el puerto UDP 14550.
+
+\begin{recuerda}
+Con \cod{controlador:=ardupilot}, nuestros controladores de ROS no se usan: el que pilota es ArduCopter.
+Nuestro planificador sigue decidiendo a dónde ir y se lo pide a ArduCopter en modo GUIDED, exactamente
+como se haría con el dron real conectado a una computadora a bordo.
+\end{recuerda}

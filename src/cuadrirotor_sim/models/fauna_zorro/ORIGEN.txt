@@ -1,0 +1,3 @@
+Modelo de OpenGameArt (https://opengameart.org/content/5-low-poly-animals), licencia CC0 (dominio público).
+Archivo original: Animals Pack by Quaternius/OBJ/Red Fox.obj de https://opengameart.org/sites/default/files/Animals%20Pack%20by%20Quaternius.zip
+Girado a Z arriba con la cabeza hacia +x y escalado a 0.55 m de alto por scripts/preparar_fauna.py.

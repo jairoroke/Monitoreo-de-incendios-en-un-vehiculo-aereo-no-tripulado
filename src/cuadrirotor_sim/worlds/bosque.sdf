@@ -1,0 +1,484 @@
+<?xml version="1.0"?>
+<!-- Generado por scripts/generar_bosque.py; no editar a mano.
+     50 robles y 35 pinos (OpenRobotics, CC0) y un foco de incendio en
+     (8, 5). El vehículo lo agrega el launch en el origen. -->
+<sdf version="1.9">
+  <world name="bosque">
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-particle-emitter-system" name="gz::sim::systems::ParticleEmitter"/>
+    <plugin filename="gz-sim-apply-link-wrench-system" name="gz::sim::systems::ApplyLinkWrench"/>
+
+    <gravity>0 0 -9.81</gravity>
+    <scene>
+      <ambient>0.45 0.45 0.45 1</ambient>
+      <background>0.62 0.74 0.86 1</background>
+      <grid>false</grid>
+      <shadows>true</shadows>
+    </scene>
+
+    <light type="directional" name="sol">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 50 0 0 0</pose>
+      <diffuse>0.95 0.93 0.85 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.3 -0.8</direction>
+    </light>
+
+    <model name="terreno">
+      <static>true</static>
+      <link name="link">
+        <collision name="col">
+          <geometry><plane><normal>0 0 1</normal><size>300 300</size></plane></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><plane><normal>0 0 1</normal><size>300 300</size></plane></geometry>
+          <material><ambient>0.42 0.55 0.32 1</ambient><diffuse>0.42 0.55 0.32 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <uri>model://foco_incendio</uri>
+      <name>foco_incendio</name>
+      <pose>8 5 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_00</name>
+      <pose>-9.09 -19.44 0 0 0 4.090</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_01</name>
+      <pose>-29.21 7.51 0 0 0 2.298</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_02</name>
+      <pose>-29.41 -23.65 0 0 0 2.667</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_03</name>
+      <pose>31.15 -21.33 0 0 0 1.403</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_04</name>
+      <pose>15.19 36.34 0 0 0 3.626</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_05</name>
+      <pose>-3.27 38.34 0 0 0 0.293</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_06</name>
+      <pose>33.68 -9.73 0 0 0 0.906</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_07</name>
+      <pose>-25.58 -8.41 0 0 0 5.128</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_08</name>
+      <pose>-20.54 10.71 0 0 0 4.014</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_09</name>
+      <pose>-5.21 8.34 0 0 0 0.395</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_10</name>
+      <pose>-30.23 -15.58 0 0 0 4.275</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_11</name>
+      <pose>-11.02 25.61 0 0 0 4.392</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_12</name>
+      <pose>7.02 31.26 0 0 0 4.583</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_13</name>
+      <pose>-11.96 38.61 0 0 0 0.742</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_14</name>
+      <pose>-1.55 23.00 0 0 0 0.955</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_15</name>
+      <pose>4.12 -27.26 0 0 0 4.199</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_16</name>
+      <pose>26.17 10.11 0 0 0 5.501</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_17</name>
+      <pose>40.57 3.19 0 0 0 4.173</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_18</name>
+      <pose>-30.15 19.10 0 0 0 4.066</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_19</name>
+      <pose>44.45 27.53 0 0 0 1.788</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_20</name>
+      <pose>-21.56 -21.80 0 0 0 0.370</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_21</name>
+      <pose>-15.19 -2.63 0 0 0 5.475</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_22</name>
+      <pose>30.54 30.48 0 0 0 1.749</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_23</name>
+      <pose>35.74 37.04 0 0 0 0.948</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_24</name>
+      <pose>12.13 -11.61 0 0 0 0.026</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_25</name>
+      <pose>14.41 17.33 0 0 0 0.339</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_26</name>
+      <pose>36.96 24.60 0 0 0 5.495</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_27</name>
+      <pose>28.83 -2.53 0 0 0 2.507</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_28</name>
+      <pose>-32.96 31.20 0 0 0 3.858</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_29</name>
+      <pose>-7.21 -4.51 0 0 0 0.772</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_30</name>
+      <pose>7.26 -19.74 0 0 0 3.413</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_31</name>
+      <pose>20.70 -11.72 0 0 0 2.304</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_32</name>
+      <pose>-21.64 24.04 0 0 0 3.346</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_33</name>
+      <pose>-12.65 -11.86 0 0 0 4.351</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_34</name>
+      <pose>17.24 25.98 0 0 0 0.533</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_35</name>
+      <pose>27.58 22.51 0 0 0 3.004</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_36</name>
+      <pose>43.42 16.01 0 0 0 2.202</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_37</name>
+      <pose>-20.35 -29.72 0 0 0 5.021</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_38</name>
+      <pose>5.97 18.49 0 0 0 2.842</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_39</name>
+      <pose>42.40 -14.63 0 0 0 5.985</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_40</name>
+      <pose>22.77 -28.64 0 0 0 3.481</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_41</name>
+      <pose>42.74 -22.67 0 0 0 1.669</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_42</name>
+      <pose>-23.05 34.34 0 0 0 3.585</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_43</name>
+      <pose>43.60 -6.01 0 0 0 5.229</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_44</name>
+      <pose>34.64 16.94 0 0 0 1.771</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_45</name>
+      <pose>0.67 -11.57 0 0 0 6.043</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_46</name>
+      <pose>-34.91 -3.29 0 0 0 2.982</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_47</name>
+      <pose>19.45 4.25 0 0 0 0.021</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_48</name>
+      <pose>24.19 38.30 0 0 0 3.104</pose>
+    </include>
+    <include>
+      <uri>model://roble</uri>
+      <name>roble_49</name>
+      <pose>-13.50 17.04 0 0 0 4.349</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_50</name>
+      <pose>2.31 -21.70 0 0 0 5.615</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_51</name>
+      <pose>-19.06 38.47 0 0 0 5.883</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_52</name>
+      <pose>-33.60 2.13 0 0 0 5.152</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_53</name>
+      <pose>6.93 36.69 0 0 0 0.833</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_54</name>
+      <pose>30.62 5.61 0 0 0 5.572</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_55</name>
+      <pose>-33.01 -29.75 0 0 0 3.089</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_56</name>
+      <pose>-34.86 22.55 0 0 0 5.272</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_57</name>
+      <pose>22.04 33.11 0 0 0 1.821</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_58</name>
+      <pose>-12.99 -26.62 0 0 0 0.639</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_59</name>
+      <pose>-13.74 5.77 0 0 0 1.193</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_60</name>
+      <pose>2.77 -5.94 0 0 0 1.871</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_61</name>
+      <pose>-10.93 9.01 0 0 0 2.478</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_62</name>
+      <pose>34.83 -28.47 0 0 0 0.203</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_63</name>
+      <pose>2.86 11.10 0 0 0 0.001</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_64</name>
+      <pose>-26.28 -19.19 0 0 0 3.282</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_65</name>
+      <pose>22.74 15.31 0 0 0 4.805</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_66</name>
+      <pose>1.59 8.61 0 0 0 0.248</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_67</name>
+      <pose>27.58 -13.72 0 0 0 5.780</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_68</name>
+      <pose>-3.95 -14.35 0 0 0 3.777</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_69</name>
+      <pose>-34.16 -8.89 0 0 0 2.895</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_70</name>
+      <pose>-10.41 -28.47 0 0 0 3.131</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_71</name>
+      <pose>25.84 -9.35 0 0 0 5.981</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_72</name>
+      <pose>-23.29 -2.46 0 0 0 1.338</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_73</name>
+      <pose>-3.53 32.87 0 0 0 5.552</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_74</name>
+      <pose>18.15 -3.50 0 0 0 2.349</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_75</name>
+      <pose>-12.95 -29.74 0 0 0 4.748</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_76</name>
+      <pose>40.46 -28.30 0 0 0 1.469</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_77</name>
+      <pose>3.02 36.97 0 0 0 5.994</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_78</name>
+      <pose>-13.81 -24.11 0 0 0 0.606</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_79</name>
+      <pose>-1.65 13.42 0 0 0 4.236</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_80</name>
+      <pose>24.84 29.29 0 0 0 4.175</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_81</name>
+      <pose>-25.31 28.86 0 0 0 1.846</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_82</name>
+      <pose>10.35 -3.89 0 0 0 4.637</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_83</name>
+      <pose>-19.06 -12.68 0 0 0 1.542</pose>
+    </include>
+    <include>
+      <uri>model://pino</uri>
+      <name>pino_84</name>
+      <pose>5.59 -13.80 0 0 0 5.080</pose>
+    </include>
+
+  </world>
+</sdf>

@@ -1,0 +1,117 @@
+\chapter{Referencia de uso}
+
+\begin{enpocas}
+Todas las órdenes, argumentos y tópicos en un solo lugar, para consultar.
+\end{enpocas}
+
+\section{Antes de lanzar}
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws
+colcon build --symlink-install      # solo si se agregaron ejecutables o se cambió C++
+source install/setup.bash
+\end{lstlisting}
+
+\section{Órdenes de lanzamiento}
+
+\begin{lstlisting}[style=bash]
+# Cuadrirrotor genérico: despegue y hover a 3 m
+ros2 launch cuadrirotor_sim simulacion.launch.py
+
+# Órbita alrededor del foco con viento, guardando un CSV
+ros2 launch cuadrirotor_sim simulacion.launch.py mision:=orbita viento:=true csv:=$HOME/corrida.csv
+
+# STA implícito, Tarot, bosque
+ros2 launch cuadrirotor_sim simulacion.launch.py vehiculo:=tarot650 mundo:=bosque \
+    controlador:=sta esquema:=implicito mision:=orbita viento:=true
+
+# Sin interfaz y con otro periodo de muestreo
+ros2 launch cuadrirotor_sim simulacion.launch.py gui:=false Ts:=0.01
+
+# Búsqueda autónoma del incendio en el valle (STA)
+ros2 launch cuadrirotor_sim simulacion.launch.py vehiculo:=tarot650 mundo:=bosque_grande \
+    controlador:=sta mision:=busqueda
+#   ... con el foco en otro lugar
+ros2 launch cuadrirotor_sim simulacion.launch.py vehiculo:=tarot650 mundo:=bosque_grande \
+    controlador:=sta mision:=busqueda foco_x:=-150 foco_y:=60
+
+# La misma búsqueda pilotada por ArduPilot SITL
+ros2 launch cuadrirotor_sim simulacion.launch.py vehiculo:=tarot650 mundo:=bosque_grande \
+    controlador:=ardupilot mision:=busqueda
+\end{lstlisting}
+
+\section{Argumentos del \emph{launch}}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.6cm}p{9.8cm}}
+\toprule
+\textbf{Argumento} & \textbf{Por omisión} & \textbf{Valores} \\ \midrule \endhead
+\cod{vehiculo} & cuadrirotor & \cod{cuadrirotor}, \cod{tarot650} \\
+\cod{mundo} & incendio & \cod{incendio}, \cod{bosque}, \cod{bosque_grande} \\
+\cod{controlador} & pd & \cod{pd}, \cod{sta}, \cod{ardupilot}, \cod{ninguno} (para lanzarlo aparte con \cod{ros2 run}) \\
+\cod{esquema} & implicito & STA: \cod{explicito}, \cod{semi_implicito}, \cod{implicito} \\
+\cod{mision} & hover & \cod{hover}, \cod{orbita}, \cod{busqueda} \\
+\cod{gui} & true & mostrar la interfaz de Gazebo (y las ventanas del SITL) \\
+\cod{Ts} & 0.005 & periodo de muestreo del controlador [s] \\
+\cod{viento} & false & aplicar la perturbación de viento \\
+\cod{csv} & & ruta del CSV de registro \\
+\cod{foco_x}, \cod{foco_y} & & \cod{bosque_grande}: posición del incendio [m] \\
+\cod{x0}, \cod{y0} & & posición inicial del dron [m] \\
+\cod{modelo_yolo} & & pesos de YOLO (.pt) en lugar de \cod{yolo/incendio_yolo26n.pt} \\
+\bottomrule
+\end{longtable}
+
+\section{Tópicos}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{6.6cm}p{3cm}}
+\toprule
+\textbf{Tópico} & \textbf{Tipo y contenido} & \textbf{Publica} \\ \midrule \endhead
+\cod{/cuadrirotor/odometria} & \cod{nav_msgs/Odometry} (velocidades en el cuerpo) & Gazebo \\
+\cod{/cuadrirotor/imu} & \cod{sensor_msgs/Imu} & Gazebo \\
+\cod{/cuadrirotor/camara} & \cod{sensor_msgs/Image} 640$\times$480, 15~Hz & Gazebo \\
+\cod{/cuadrirotor/lidar/points} & \cod{sensor_msgs/PointCloud2}, 10~Hz & Gazebo \\
+\cod{/cuadrirotor/motores} & \cod{actuator_msgs/Actuators} [rad/s] & controlador \\
+\cod{/cuadrirotor/viento} & \cod{geometry_msgs/Vector3} [N] & \cod{viento} \\
+\cod{/cuadrirotor/referencia}, \cod{/cuadrirotor/error} & \cod{PoseStamped}, \cod{Vector3Stamped} & controlador \\
+\cod{/cuadrirotor/consigna} & \cod{MultiDOFJointTrajectoryPoint} & planificador \\
+\cod{/cuadrirotor/detecciones} & \cod{vision_msgs/Detection2DArray} & detector \\
+\cod{/cuadrirotor/camara_yolo} & imagen con las cajas & detector \\
+\cod{/cuadrirotor/foco_estimado} & \cod{geometry_msgs/PointStamped} & planificador \\
+\cod{/cuadrirotor/busqueda/estado} & \cod{std_msgs/String} & planificador \\
+\cod{/cuadrirotor/busqueda/cobertura} & \cod{std_msgs/Float32} (\% visto) & planificador \\
+\cod{/cuadrirotor/busqueda/mapa_cobertura} & \cod{nav_msgs/OccupancyGrid} & planificador \\
+\cod{/cuadrirotor/busqueda/ruta} & \cod{nav_msgs/Path} & planificador \\
+\cod{/cuadrirotor/evasion/obstaculos} & \cod{sensor_msgs/PointCloud2} (marco \cod{world}) & planificador \\
+\cod{/cuadrirotor/incendio/gps} & \cod{sensor_msgs/NavSatFix} (transient local) & planificador \\
+\cod{/cuadrirotor/incendio/alerta} & \cod{std_msgs/String} (transient local) & planificador \\
+\bottomrule
+\end{longtable}
+
+\section{Herramientas de visualización}
+
+\begin{lstlisting}[style=bash]
+ros2 topic echo /cuadrirotor/incendio/alerta          # el aviso con las coordenadas
+ros2 topic echo /cuadrirotor/busqueda/estado
+ros2 run rqt_image_view rqt_image_view /cuadrirotor/camara_yolo
+ros2 run plotjuggler plotjuggler                      # señales en tiempo real
+rviz2                                                 # marco 'world': mapa de cobertura, ruta, obstáculos
+\end{lstlisting}
+
+\section{Campañas y métricas}
+
+\begin{lstlisting}[style=bash]
+src/cuadrirotor_sim/scripts/corrida.sh ~/corridas/imp.csv 50 esquema=implicito Ts=0.02 k1_0=4.0 adaptativo=false
+src/cuadrirotor_sim/scripts/metricas.py ~/corridas/*.csv
+\end{lstlisting}
+\cod{metricas.py} reporta el error RMS sin y con viento, el máximo con viento, el
+\emph{chattering} y la ganancia $k_1$ final.
+
+\section{Regenerar los recursos}
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws/src/cuadrirotor_sim
+python3 scripts/generar_modelo.py                         # vehículos y sus YAML
+python3 scripts/generar_fuego.py                          # fuego y humo
+python3 scripts/generar_bosque.py worlds/bosque.sdf       # mundo bosque
+~/.venvs/cad/bin/python scripts/preparar_fauna.py ~/Descargas/fauna   # animales
+~/.venvs/cad/bin/python scripts/generar_bosque_grande.py  # mundo grande
+\end{lstlisting}

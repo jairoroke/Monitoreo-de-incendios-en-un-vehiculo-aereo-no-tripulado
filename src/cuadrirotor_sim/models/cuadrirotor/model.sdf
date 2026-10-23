@@ -1,0 +1,251 @@
+<?xml version="1.0"?>
+<!-- Generado por scripts/generar_modelo.py; no editar a mano.
+     Cuadrirrotor genérico en configuración "+" (1.5 kg).
+     kf = 8.54858e-06 N/(rad/s)^2, km = 0.016 m, w_max = 1000.0 rad/s. -->
+<sdf version="1.9">
+  <model name="cuadrirotor">
+    <link name="base_link">
+      <inertial>
+        <mass>1.48</mass>
+        <inertia>
+          <ixx>0.029</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.029</iyy><iyz>0</iyz><izz>0.055</izz>
+        </inertia>
+      </inertial>
+      <collision name="cuerpo_col">
+        <geometry><box><size>0.2 0.2 0.06</size></box></geometry>
+      </collision>
+      <visual name="cuerpo">
+        <geometry><box><size>0.16 0.16 0.05</size></box></geometry>
+        <material><ambient>0.15 0.35 0.7 1</ambient><diffuse>0.15 0.35 0.7 1</diffuse></material>
+      </visual>
+      <visual name="brazo_0">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry><box><size>0.45 0.025 0.02</size></box></geometry>
+        <material><ambient>0.2 0.2 0.25 1</ambient><diffuse>0.2 0.2 0.25 1</diffuse></material>
+      </visual>
+      <visual name="brazo_1">
+        <pose>0 0 0 0 0 1.5707963</pose>
+        <geometry><box><size>0.45 0.025 0.02</size></box></geometry>
+        <material><ambient>0.2 0.2 0.25 1</ambient><diffuse>0.2 0.2 0.25 1</diffuse></material>
+      </visual>
+
+      <sensor name="imu" type="imu">
+        <always_on>1</always_on>
+        <update_rate>200</update_rate>
+        <topic>cuadrirotor/imu</topic>
+      </sensor>
+
+      <!-- Cámara frontal inclinada 30 grados hacia abajo: ve el horizonte para
+           buscar el incendio de lejos y lo mantiene a la vista en la órbita. -->
+      <sensor name="camara" type="camera">
+        <pose>0.1 0.0 -0.03 0 0.5236 0</pose>
+        <always_on>1</always_on>
+        <update_rate>15</update_rate>
+        <topic>cuadrirotor/camara</topic>
+        <camera>
+          <horizontal_fov>1.3</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.1</near><far>1500</far></clip>
+        </camera>
+      </sensor>
+
+      <!-- LiDAR 3D para la evasión de obstáculos (busqueda_incendio): 360 grados
+           en 120 haces por 16 canales de -35 a +15 grados, hasta 30 m. -->
+      <sensor name="lidar" type="gpu_lidar">
+        <pose>0 0 0.1 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <topic>cuadrirotor/lidar</topic>
+        <lidar>
+          <scan>
+            <horizontal><samples>120</samples><min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle></horizontal>
+            <vertical><samples>16</samples><min_angle>-0.6109</min_angle><max_angle>0.2618</max_angle></vertical>
+          </scan>
+          <range><min>0.8</min><max>30</max><resolution>0.05</resolution></range>
+        </lidar>
+      </sensor>
+    </link>
+
+    <link name="rotor_0">
+      <pose>0.225 0.0 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>4.17041e-05</iyy><iyz>0</iyz><izz>4.26041e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><box><size>0.24 0.028 0.004</size></box></geometry>
+        <material><ambient>0.9 0.35 0.05 1</ambient><diffuse>0.9 0.35 0.05 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_1">
+      <pose>0.0 0.225 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>4.17041e-05</iyy><iyz>0</iyz><izz>4.26041e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><box><size>0.24 0.028 0.004</size></box></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_2">
+      <pose>-0.225 0.0 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>4.17041e-05</iyy><iyz>0</iyz><izz>4.26041e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><box><size>0.24 0.028 0.004</size></box></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_3">
+      <pose>0.0 -0.225 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>9.75e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>4.17041e-05</iyy><iyz>0</iyz><izz>4.26041e-05</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><box><size>0.24 0.028 0.004</size></box></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+    </link>
+
+    <joint name="rotor_0_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_0</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_1_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_1</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_2_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_2</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_3_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_3</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_0_joint</jointName>
+      <linkName>rotor_0</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1000.0</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_1_joint</jointName>
+      <linkName>rotor_1</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1000.0</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>1</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/1</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_2_joint</jointName>
+      <linkName>rotor_2</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1000.0</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>2</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_3_joint</jointName>
+      <linkName>rotor_3</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1000.0</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>3</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/3</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <dimensions>3</dimensions>
+      <odom_publish_frequency>1000</odom_publish_frequency>
+      <odom_frame>world</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+
+    <!-- Perturbación externa en el marco inercial (paquete cuadrirotor_gz_plugins). -->
+    <plugin filename="FuerzaViento" name="cuadrirotor::FuerzaViento">
+      <link_name>base_link</link_name>
+      <topic>/cuadrirotor/viento</topic>
+    </plugin>
+  </model>
+</sdf>

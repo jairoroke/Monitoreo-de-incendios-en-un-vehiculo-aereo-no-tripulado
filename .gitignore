@@ -1,0 +1,22 @@
+# Artefactos de colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.pyc
+
+# Plugin de ArduPilot para Gazebo (se clona aparte, ver README)
+src/ardupilot_gazebo/
+
+# Pesos de COCO de YOLO26n (Ultralytics los descarga solo); sí se versiona yolo/incendio_yolo26n.pt
+src/cuadrirotor_sim/yolo26n.pt
+src/cuadrirotor_sim/weights/
+
+# LaTeX
+*.aux
+*.log
+*.toc
+*.out
+

@@ -1,0 +1,54 @@
+# Puente Gazebo <-> ROS 2 (ros_gz_bridge).
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
+
+# Estado verdadero (posición, orientación, velocidades en marco del cuerpo).
+- ros_topic_name: /cuadrirotor/odometria
+  gz_topic_name: /model/cuadrirotor/odometry
+  ros_type_name: nav_msgs/msg/Odometry
+  gz_type_name: gz.msgs.Odometry
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /cuadrirotor/imu
+  gz_topic_name: /cuadrirotor/imu
+  ros_type_name: sensor_msgs/msg/Imu
+  gz_type_name: gz.msgs.IMU
+  direction: GZ_TO_ROS
+
+- ros_topic_name: /cuadrirotor/camara
+  gz_topic_name: /cuadrirotor/camara
+  ros_type_name: sensor_msgs/msg/Image
+  gz_type_name: gz.msgs.Image
+  direction: GZ_TO_ROS
+
+# Nube de puntos del LiDAR (evasión de obstáculos), en el marco del sensor.
+- ros_topic_name: /cuadrirotor/lidar/points
+  gz_topic_name: /cuadrirotor/lidar/points
+  ros_type_name: sensor_msgs/msg/PointCloud2
+  gz_type_name: gz.msgs.PointCloudPacked
+  direction: GZ_TO_ROS
+
+# Imagen de la cámara con las detecciones de YOLO (panel "Detección YOLO").
+- ros_topic_name: /cuadrirotor/camara_yolo
+  gz_topic_name: /cuadrirotor/camara_yolo
+  ros_type_name: sensor_msgs/msg/Image
+  gz_type_name: gz.msgs.Image
+  direction: ROS_TO_GZ
+
+# Velocidades de los cuatro rotores [rad/s].
+- ros_topic_name: /cuadrirotor/motores
+  gz_topic_name: /cuadrirotor/command/motor_speed
+  ros_type_name: actuator_msgs/msg/Actuators
+  gz_type_name: gz.msgs.Actuators
+  direction: ROS_TO_GZ
+
+# Perturbación externa (viento): fuerza [N] en el marco inercial sobre
+# base_link; el sistema FuerzaViento la retiene hasta el siguiente mensaje.
+- ros_topic_name: /cuadrirotor/viento
+  gz_topic_name: /cuadrirotor/viento
+  ros_type_name: geometry_msgs/msg/Vector3
+  gz_type_name: gz.msgs.Vector3d
+  direction: ROS_TO_GZ

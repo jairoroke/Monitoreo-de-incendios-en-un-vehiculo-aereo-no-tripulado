@@ -1,0 +1,336 @@
+<?xml version="1.0"?>
+<!-- Generado por scripts/generar_modelo.py; no editar a mano.
+     Tarot Ironman 650 en configuración "X" (2.2 kg, MN3508, hélices 15").
+     kf = 4.24e-05 N/(rad/s)^2, km = 0.016 m, w_max = 680.0 rad/s. -->
+<sdf version="1.9">
+  <model name="tarot650_ardupilot">
+    <link name="base_link">
+      <inertial>
+        <mass>2.12</mass>
+        <inertia>
+          <ixx>0.0304</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.0321</iyy><iyz>0</iyz><izz>0.0585</izz>
+        </inertia>
+      </inertial>
+      <collision name="cuerpo_col">
+        <geometry><box><size>0.16 0.16 0.06</size></box></geometry>
+      </collision>
+      <collision name="pata_0">
+        <pose>0 -0.1065 -0.2205 0 1.5707963 0</pose>
+        <geometry><cylinder><radius>0.005</radius><length>0.2</length></cylinder></geometry>
+      </collision>
+      <collision name="pata_1">
+        <pose>0 0.1065 -0.2205 0 1.5707963 0</pose>
+        <geometry><cylinder><radius>0.005</radius><length>0.2</length></cylinder></geometry>
+      </collision>
+      <visual name="placas">
+        <geometry><mesh><uri>model://tarot650/meshes/placas.stl</uri></mesh></geometry>
+        <material><ambient>0.09 0.09 0.1 1</ambient><diffuse>0.09 0.09 0.1 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+      <visual name="brazos">
+        <geometry><mesh><uri>model://tarot650/meshes/brazos.stl</uri></mesh></geometry>
+        <material><ambient>0.06 0.06 0.07 1</ambient><diffuse>0.06 0.06 0.07 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+      <visual name="acentos">
+        <geometry><mesh><uri>model://tarot650/meshes/acentos.stl</uri></mesh></geometry>
+        <material><ambient>0.9 0.42 0.08 1</ambient><diffuse>0.9 0.42 0.08 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+      <visual name="tren">
+        <geometry><mesh><uri>model://tarot650/meshes/tren.stl</uri></mesh></geometry>
+        <material><ambient>0.16 0.16 0.17 1</ambient><diffuse>0.16 0.16 0.17 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+      <visual name="motores">
+        <geometry><mesh><uri>model://tarot650/meshes/motores.stl</uri></mesh></geometry>
+        <material><ambient>0.72 0.72 0.75 1</ambient><diffuse>0.72 0.72 0.75 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+      <visual name="marco">
+        <geometry><mesh><uri>model://tarot650/meshes/marco.stl</uri></mesh></geometry>
+        <material><ambient>0.6 0.6 0.62 1</ambient><diffuse>0.6 0.6 0.62 1</diffuse><specular>0.3 0.3 0.3 1</specular></material>
+      </visual>
+
+      <sensor name="imu" type="imu">
+        <always_on>1</always_on>
+        <update_rate>200</update_rate>
+        <topic>cuadrirotor/imu</topic>
+      </sensor>
+
+      <!-- Cámara frontal inclinada 30 grados hacia abajo: ve el horizonte para
+           buscar el incendio de lejos y lo mantiene a la vista en la órbita. -->
+      <sensor name="camara" type="camera">
+        <pose>0.12 0.0 -0.06 0 0.5236 0</pose>
+        <always_on>1</always_on>
+        <update_rate>15</update_rate>
+        <topic>cuadrirotor/camara</topic>
+        <camera>
+          <horizontal_fov>1.3</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.1</near><far>1500</far></clip>
+        </camera>
+      </sensor>
+
+      <!-- LiDAR 3D para la evasión de obstáculos (busqueda_incendio): 360 grados
+           en 120 haces por 16 canales de -35 a +15 grados, hasta 30 m. -->
+      <sensor name="lidar" type="gpu_lidar">
+        <pose>0 0 0.1 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <topic>cuadrirotor/lidar</topic>
+        <lidar>
+          <scan>
+            <horizontal><samples>120</samples><min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle></horizontal>
+            <vertical><samples>16</samples><min_angle>-0.6109</min_angle><max_angle>0.2618</max_angle></vertical>
+          </scan>
+          <range><min>0.8</min><max>30</max><resolution>0.05</resolution></range>
+        </lidar>
+      </sensor>
+
+      <!-- IMU que lee ArduPilot (marco NED: girada 180 grados en x). -->
+      <sensor name="imu_sensor" type="imu">
+        <pose degrees="true">0 0 0 180 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>1000</update_rate>
+      </sensor>
+    </link>
+
+    <link name="rotor_0">
+      <pose>0.2198 -0.212 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>2e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.00024</iyy><iyz>0</iyz><izz>0.00024</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><mesh><uri>model://tarot650/meshes/helice_0.stl</uri></mesh></geometry>
+        <material><ambient>0.9 0.35 0.05 1</ambient><diffuse>0.9 0.35 0.05 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_1">
+      <pose>0.2198 0.212 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>2e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.00024</iyy><iyz>0</iyz><izz>0.00024</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><mesh><uri>model://tarot650/meshes/helice_1.stl</uri></mesh></geometry>
+        <material><ambient>0.9 0.35 0.05 1</ambient><diffuse>0.9 0.35 0.05 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_2">
+      <pose>-0.2198 0.212 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>2e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.00024</iyy><iyz>0</iyz><izz>0.00024</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><mesh><uri>model://tarot650/meshes/helice_2.stl</uri></mesh></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="rotor_3">
+      <pose>-0.2198 -0.212 0.04 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>2e-07</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>0.00024</iyy><iyz>0</iyz><izz>0.00024</izz>
+        </inertia>
+      </inertial>
+      <visual name="helice">
+        <geometry><mesh><uri>model://tarot650/meshes/helice_3.stl</uri></mesh></geometry>
+        <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+      </visual>
+    </link>
+
+    <joint name="rotor_0_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_0</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_1_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_1</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_2_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_2</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+    <joint name="rotor_3_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>rotor_3</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>-1e16</lower><upper>1e16</upper></limit>
+      </axis>
+    </joint>
+
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_0_joint</jointName>
+      <linkName>rotor_0</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.03</timeConstantUp>
+      <timeConstantDown>0.05</timeConstantDown>
+      <maxRotVelocity>680.0</maxRotVelocity>
+      <motorConstant>4.24e-05</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_1_joint</jointName>
+      <linkName>rotor_1</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.03</timeConstantUp>
+      <timeConstantDown>0.05</timeConstantDown>
+      <maxRotVelocity>680.0</maxRotVelocity>
+      <motorConstant>4.24e-05</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>1</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/1</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_2_joint</jointName>
+      <linkName>rotor_2</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.03</timeConstantUp>
+      <timeConstantDown>0.05</timeConstantDown>
+      <maxRotVelocity>680.0</maxRotVelocity>
+      <motorConstant>4.24e-05</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>2</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="gz-sim-multicopter-motor-model-system"
+            name="gz::sim::systems::MulticopterMotorModel">
+      <robotNamespace>cuadrirotor</robotNamespace>
+      <jointName>rotor_3_joint</jointName>
+      <linkName>rotor_3</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.03</timeConstantUp>
+      <timeConstantDown>0.05</timeConstantDown>
+      <maxRotVelocity>680.0</maxRotVelocity>
+      <motorConstant>4.24e-05</motorConstant>
+      <momentConstant>0.016</momentConstant>
+      <commandSubTopic>command/motor_speed</commandSubTopic>
+      <motorNumber>3</motorNumber>
+      <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>motor_speed/3</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <motorType>velocity</motorType>
+    </plugin>
+
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <dimensions>3</dimensions>
+      <odom_publish_frequency>1000</odom_publish_frequency>
+      <odom_frame>world</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+
+    <!-- Perturbación externa en el marco inercial (paquete cuadrirotor_gz_plugins). -->
+    <plugin filename="FuerzaViento" name="cuadrirotor::FuerzaViento">
+      <link_name>base_link</link_name>
+      <topic>/cuadrirotor/viento</topic>
+    </plugin>
+
+    <plugin filename="ArduPilotPlugin" name="ArduPilotPlugin">
+      <fdm_addr>127.0.0.1</fdm_addr>
+      <fdm_port_in>9002</fdm_port_in>
+      <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
+      <lock_step>1</lock_step>
+      <no_time_sync>1</no_time_sync>
+      <have_32_channels>0</have_32_channels>
+      <modelXYZToAirplaneXForwardZDown degrees="true">0 0 0 180 0 0</modelXYZToAirplaneXForwardZDown>
+      <gazeboXYZToNED degrees="true">0 0 0 180 0 90</gazeboXYZToNED>
+      <imuName>base_link::imu_sensor</imuName>
+      <control channel="0">
+        <jointName>rotor_0_joint</jointName>
+        <type>COMMAND</type>
+        <cmd_topic>/cuadrirotor/ap/motor_0</cmd_topic>
+        <useForce>0</useForce>
+        <multiplier>680.0</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+      </control>
+      <control channel="1">
+        <jointName>rotor_2_joint</jointName>
+        <type>COMMAND</type>
+        <cmd_topic>/cuadrirotor/ap/motor_2</cmd_topic>
+        <useForce>0</useForce>
+        <multiplier>680.0</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+      </control>
+      <control channel="2">
+        <jointName>rotor_1_joint</jointName>
+        <type>COMMAND</type>
+        <cmd_topic>/cuadrirotor/ap/motor_1</cmd_topic>
+        <useForce>0</useForce>
+        <multiplier>680.0</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+      </control>
+      <control channel="3">
+        <jointName>rotor_3_joint</jointName>
+        <type>COMMAND</type>
+        <cmd_topic>/cuadrirotor/ap/motor_3</cmd_topic>
+        <useForce>0</useForce>
+        <multiplier>680.0</multiplier>
+        <offset>0</offset>
+        <servo_min>1000</servo_min>
+        <servo_max>2000</servo_max>
+      </control>
+    </plugin>
+
+    <plugin filename="ComandosMotores" name="cuadrirotor::ComandosMotores">
+      <entrada>/cuadrirotor/ap/motor_0</entrada>
+      <entrada>/cuadrirotor/ap/motor_1</entrada>
+      <entrada>/cuadrirotor/ap/motor_2</entrada>
+      <entrada>/cuadrirotor/ap/motor_3</entrada>
+      <salida>/cuadrirotor/command/motor_speed</salida>
+    </plugin>
+  </model>
+</sdf>

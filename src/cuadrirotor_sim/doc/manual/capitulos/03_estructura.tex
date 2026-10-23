@@ -1,0 +1,83 @@
+\chapter{Dónde está cada cosa: el espacio de trabajo}
+
+\begin{enpocas}
+Un mapa de las carpetas y archivos del proyecto, para saber dónde buscar cuando quieras cambiar algo.
+\end{enpocas}
+
+\begin{lstlisting}
+~/ros2_ws/
+|-- README.md                      descripción y órdenes (resumen de este manual)
+`-- src/
+    |-- cuadrirotor_sim/           paquete principal (Python)
+    |   |-- cuadrirotor_sim/       nodos y bibliotecas
+    |   |-- launch/simulacion.launch.py
+    |   |-- config/                parámetros (YAML), GUI de Gazebo, ArduPilot
+    |   |-- models/                vehículos, árboles, fauna, fuego, terreno
+    |   |-- worlds/                incendio.sdf, bosque.sdf, bosque_grande.sdf
+    |   |-- scripts/               generadores, captura de datos, entrenamiento
+    |   |-- yolo/incendio_yolo26n.pt   pesos del detector
+    |   `-- test/                  pruebas (pytest)
+    |-- cuadrirotor_gz_plugins/    sistemas de Gazebo en C++
+    `-- ardupilot_gazebo/          plugin de ArduPilot (clonado)
+\end{lstlisting}
+
+\section{Módulos del paquete \texorpdfstring{\texttt{cuadrirotor\_sim}}{cuadrirotor\_sim}}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.2cm}p{11cm}}
+\toprule
+\textbf{Archivo} & \textbf{Qué hace} \\ \midrule \endhead
+\cod{dinamica.py} & Rotaciones, mezclador de rotores (empuje y pares $\rightarrow$ velocidades), referencia de las misiones \emph{hover} y \emph{órbita}. \\
+\cod{controlador_pd.py} & Nodo del PD en cascada: lazo de posición y PD sobre SO(3). Base de los demás controladores. \\
+\cod{sta.py} & Super-twisting adaptativo con discretización explícita, semi-implícita e implícita. \\
+\cod{controlador_sta.py} & Nodo que reemplaza el lazo de posición del PD por el STA. \\
+\cod{viento.py} & Perturbación $F(t)=F_0+A\sin(2\pi f t)$ publicada en \cod{/cuadrirotor/viento}. \\
+\cod{terreno.py} & Modelo digital de elevación (DEM): altura, máximo en un tramo y corte de rayos. \\
+\cod{bosque_grande.py} & Arma el SDF del mundo grande con el foco donde se pida. \\
+\cod{fauna.py} & Mueve a los animales (pastar, caminar, trotar) por gz-transport. \\
+\cod{detector_yolo.py} & YOLO26n sobre la cámara; publica cajas y la imagen anotada. \\
+\cod{busqueda_incendio.py} & Planificador autónomo: máquina de estados de la búsqueda. \\
+\cod{cobertura.py} & Rutas de barrido (franjas y serpentina) y mapa de cobertura. \\
+\cod{evasion.py} & Evasión reactiva de obstáculos con el LiDAR (histograma polar). \\
+\cod{geo.py} & Conversión del marco del mundo (ENU) a coordenadas GPS (WGS84). \\
+\cod{mision_ardupilot.py} & Misión por MAVLink para ArduCopter SITL. \\
+\cod{ventanas_sitl.py} & Acomoda las ventanas del SITL en la pantalla. \\
+\cod{mavproxy_trayectoria.py} & Módulo de MAVProxy: dibuja la trayectoria, la ruta y el foco en el mapa. \\
+\bottomrule
+\end{longtable}
+
+\section{Scripts}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{4.6cm}p{10.6cm}}
+\toprule
+\textbf{Script} & \textbf{Uso} \\ \midrule \endhead
+\cod{cad_a_malla.py} & Convierte el STEP del Tarot en mallas STL por grupos de piezas. \\
+\cod{generar_modelo.py} & Escribe el SDF de cada vehículo y su YAML desde una sola tabla de parámetros. \\
+\cod{generar_fuego.py} & Texturas de las partículas y modelos \cod{foco_incendio} y \cod{columna_humo}. \\
+\cod{generar_bosque.py} & Mundo \cod{bosque} (85 árboles, semilla fija). \\
+\cod{generar_bosque_grande.py} & Terreno, textura, árboles, rocas, fauna y DEM del mundo grande. \\
+\cod{preparar_fauna.py} & Descarga y adapta los modelos CC0 de venado, zorro y lobo. \\
+\cod{capturar_dataset.py} & Genera imágenes etiquetadas para YOLO desde Gazebo. \\
+\cod{entrenar_yolo.py} & Ajusta YOLO26n con uno o varios datasets. \\
+\cod{corrida.sh}, \cod{metricas.py} & Campañas de simulación y métricas (RMS, máximo, \emph{chattering}). \\
+\bottomrule
+\end{longtable}
+
+\section{Archivos de configuración}
+
+\begin{description}
+  \item[\cod{config/parametros.yaml}] misión por omisión (altura, foco, radio, $\omega$), ganancias del PD
+        y del STA, y viento.
+  \item[\cod{config/vehiculo_<vehiculo>.yaml}] masa, inercia, rotores, $k_f$, $k_m$, $\omega_{max}$, lazo de
+        actitud y cámara. Lo genera \cod{generar_modelo.py}: no se edita a mano.
+  \item[\cod{config/mundo_bosque_grande.yaml}] parámetros de la búsqueda en el mundo grande.
+  \item[\cod{config/puente.yaml}] tópicos que cruza \cod{ros_gz_bridge} entre Gazebo y ROS~2.
+  \item[\cod{config/ardupilot/tarot650.parm}] parámetros de ArduCopter para el Tarot.
+  \item[\cod{config/gazebo_gui*.config}] distribución de la ventana de Gazebo (con el panel de la
+        cámara o el de detección de YOLO).
+\end{description}
+
+\begin{aviso}
+Los \cod{-p clave:=valor} de la línea de comandos \textbf{no} sobrescriben lo que esté en la
+sección de un nodo dentro del YAML (el YAML del nodo tiene prioridad). Para campañas se usa
+\cod{scripts/corrida.sh}, que genera un YAML de ajustes.
+\end{aviso}

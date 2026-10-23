@@ -1,0 +1,140 @@
+\chapter{ROS 2 para principiantes}
+
+\begin{enpocas}
+Qué es ROS~2, la terminal en cinco minutos, nodos, tópicos, mensajes, servicios, parámetros,
+archivos \emph{launch} y el espacio de trabajo. Con ejemplos de nuestra simulación.
+\end{enpocas}
+
+\section{La terminal en cinco minutos}
+
+Casi todo se hace escribiendo órdenes en una \textbf{terminal} (Ctrl+Alt+T en Ubuntu). Lo mínimo:
+
+\begin{lstlisting}[style=bash]
+pwd                      # ¿en qué carpeta estoy?
+ls                       # ¿qué hay aquí?
+cd ~/ros2_ws             # entrar a una carpeta (~ es tu carpeta personal)
+cd ..                    # subir un nivel
+cat archivo.txt          # ver un archivo
+nano archivo.txt         # editar un archivo (Ctrl+O guarda, Ctrl+X sale)
+Ctrl+C                   # detener el programa que está corriendo
+\end{lstlisting}
+
+\begin{consejo}
+La tecla Tab completa nombres de archivos y órdenes; la flecha hacia arriba recupera la orden
+anterior. Ahorran muchísimo tiempo y errores de dedo.
+\end{consejo}
+
+\section{¿Qué es ROS 2?}
+
+\textbf{ROS} (\emph{Robot Operating System}) no es un sistema operativo: es un conjunto de
+herramientas para que muchos programas pequeños de un robot hablen entre sí. En lugar de un programa
+gigante que lo hace todo, hay un programa que lee la cámara, otro que detecta fuego, otro que decide
+a dónde ir, otro que controla los motores... y ROS los conecta. Usamos la versión \textbf{ROS~2
+Jazzy}.
+
+\begin{ejemplo}
+Piensa en una cocina de restaurante. El que recibe pedidos los pega en un tablero; el cocinero toma
+los pedidos del tablero; el mesero recoge los platos de la barra. Nadie habla directamente con nadie:
+todos leen y escriben en lugares comunes. En ROS, los cocineros son los \emph{nodos} y los tableros
+son los \emph{tópicos}.
+\end{ejemplo}
+
+\section{Nodos, tópicos y mensajes}
+
+\begin{description}
+  \item[Nodo:] un programa que hace una tarea. En nuestra simulación: \cod{detector_yolo},
+        \cod{busqueda_incendio}, \cod{controlador_sta}, \cod{viento}...
+  \item[Tópico:] un canal con nombre por donde viajan datos, por ejemplo \cod{/cuadrirotor/camara}.
+  \item[Mensaje:] el dato que viaja, con un tipo definido. \cod{sensor_msgs/Image} es una imagen;
+        \cod{nav_msgs/Odometry}, una posición con velocidad.
+  \item[Publicar / suscribirse:] un nodo \emph{publica} en un tópico y cualquier otro se
+        \emph{suscribe} para recibir. El que publica no sabe quién escucha.
+\end{description}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  nodo/.style={draw,ellipse,fill=green!12,minimum width=2.8cm,minimum height=0.9cm,font=\small},
+  top/.style={draw,rectangle,fill=yellow!20,minimum width=3.2cm,minimum height=0.7cm,font=\scriptsize\ttfamily},
+  fl/.style={-{Stealth[length=2.2mm]},thick}]
+  \node[nodo] (gz) at (0,0) {Gazebo + puente};
+  \node[top] (cam) at (4.2,0.8) {/cuadrirotor/camara};
+  \node[top] (odo) at (4.2,-0.8) {/cuadrirotor/odometria};
+  \node[nodo] (det) at (8.6,0.8) {detector\_yolo};
+  \node[top] (detc) at (8.6,-1.0) {/cuadrirotor/detecciones};
+  \node[nodo] (bus) at (8.6,-2.8) {busqueda\_incendio};
+  \node[top] (con) at (4.2,-2.8) {/cuadrirotor/consigna};
+  \node[nodo] (ctl) at (0,-2.8) {controlador\_sta};
+  \draw[fl] (gz) -- (cam); \draw[fl] (gz) -- (odo); \draw[fl] (cam) -- (det);
+  \draw[fl] (det) -- (detc); \draw[fl] (detc) -- (bus); \draw[fl] (odo) -- (bus);
+  \draw[fl] (bus) -- (con); \draw[fl] (con) -- (ctl); \draw[fl] (odo) -- (ctl);
+  \draw[fl] (ctl) -- node[left,font=\scriptsize]{/cuadrirotor/motores} (gz);
+\end{tikzpicture}
+\caption{Nodos (óvalos verdes) que se comunican por tópicos (rectángulos amarillos) en la misión de
+búsqueda.}
+\end{figure}
+
+Para mirar desde la terminal:
+\begin{lstlisting}[style=bash]
+ros2 node list                                   # nodos que están corriendo
+ros2 topic list                                  # tópicos que existen
+ros2 topic echo /cuadrirotor/busqueda/estado     # ver lo que pasa por un tópico
+ros2 topic hz /cuadrirotor/camara                # ¿cuántos mensajes por segundo?
+ros2 topic info /cuadrirotor/odometria           # tipo y quién publica/escucha
+ros2 interface show nav_msgs/msg/Odometry        # ¿qué campos tiene un mensaje?
+\end{lstlisting}
+
+\section{Servicios y parámetros}
+
+\begin{description}
+  \item[Servicio:] una pregunta con respuesta (como una llamada telefónica), a diferencia del tópico,
+        que es una transmisión continua. El \emph{launch} usa servicios de Gazebo para hacer que la
+        cámara de la ventana siga al dron.
+  \item[Parámetro:] un ajuste de un nodo, como la altura de búsqueda o la ganancia del controlador.
+        Se guardan en archivos \textbf{YAML}:
+\end{description}
+\begin{lstlisting}
+busqueda_incendio:
+  ros__parameters:
+    altura_busqueda: 30.0     # metros sobre el suelo
+    velocidad: 5.0            # m/s
+\end{lstlisting}
+
+\section{Archivos launch}
+
+Arrancar diez nodos a mano sería tedioso. Un archivo \textbf{launch} (en Python) los arranca todos
+con sus parámetros. El nuestro es \cod{launch/simulacion.launch.py} y recibe \emph{argumentos} para
+elegir vehículo, mundo, controlador y misión:
+\begin{lstlisting}[style=bash]
+ros2 launch cuadrirotor_sim simulacion.launch.py vehiculo:=tarot650 mundo:=bosque_grande controlador:=sta mision:=busqueda
+\end{lstlisting}
+
+\section{El puente entre Gazebo y ROS}
+
+Gazebo tiene su propio sistema de mensajes (\emph{gz-transport}). El nodo \cod{ros_gz_bridge}
+traduce entre los dos mundos según la lista de \cod{config/puente.yaml}: la cámara, la odometría, la
+IMU y el LiDAR van de Gazebo a ROS; las velocidades de los motores y el viento, de ROS a Gazebo.
+
+\section{Paquetes y espacio de trabajo}
+
+El código de ROS se organiza en \textbf{paquetes} (carpetas con un \cod{package.xml}). Los paquetes
+viven en un \textbf{espacio de trabajo} (\emph{workspace}); el nuestro es \cod{~/ros2_ws}. Se
+compila con \cod{colcon} y, antes de usarlo en cada terminal, se ``activa'' con \cod{source}:
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws
+colcon build --symlink-install       # compila todos los paquetes de src/
+source install/setup.bash            # hace visibles los paquetes en esta terminal
+\end{lstlisting}
+
+\begin{aviso}
+Si una orden de ROS dice que no encuentra el paquete \cod{cuadrirotor_sim}, casi siempre es porque
+olvidaste el \cod{source install/setup.bash} en esa terminal. Para no olvidarlo, agrégalo a
+\cod{~/.bashrc}.
+\end{aviso}
+
+\begin{ejercicio}
+Con la simulación corriendo, abre otra terminal, haz \cod{source} y escribe
+\cod{ros2 topic echo /cuadrirotor/odometria --field pose.pose.position}. Verás la posición del dron
+cambiar en tiempo real.
+\end{ejercicio}

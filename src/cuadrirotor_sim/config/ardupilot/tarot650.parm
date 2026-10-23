@@ -1,0 +1,25 @@
+# Parámetros de ArduCopter para el modelo tarot650_ardupilot (se cargan sobre
+# Tools/autotest/default_params/gazebo-iris.parm).
+# Quad en "X".
+FRAME_CLASS     1
+FRAME_TYPE      1
+# Salidas 1000-2000 us -> 0-680 rad/s lineal; el empuje crece con w^2, así que
+# la curva de empuje es cuadrática pura.
+MOT_PWM_MIN     1000
+MOT_PWM_MAX     2000
+MOT_THST_EXPO   1.0
+MOT_SPIN_ARM    0.08
+MOT_SPIN_MIN    0.12
+# Vuelo estacionario: (357/680)^2 = 0.28 del empuje máximo.
+MOT_THST_HOVER  0.28
+MOT_HOVER_LEARN 2
+# Lazos de tasa más suaves que el Iris: el Tarot tiene relación empuje/peso
+# de ~3.6 y motores más lentos (30-50 ms).
+ATC_RAT_RLL_P   0.08
+ATC_RAT_RLL_I   0.08
+ATC_RAT_RLL_D   0.002
+ATC_RAT_PIT_P   0.08
+ATC_RAT_PIT_I   0.08
+ATC_RAT_PIT_D   0.002
+ATC_RAT_YAW_P   0.2
+ATC_RAT_YAW_I   0.02

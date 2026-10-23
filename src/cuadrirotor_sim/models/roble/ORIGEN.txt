@@ -1,0 +1,4 @@
+Modelo "oak tree" de OpenRobotics, descargado de Gazebo Fuel:
+https://fuel.gazebosim.org/1.0/OpenRobotics/models/oak tree
+Licencia: Creative Commons Zero v1.0 Universal (dominio público).
+Copia local con rutas relativas para usarlo sin conexión.

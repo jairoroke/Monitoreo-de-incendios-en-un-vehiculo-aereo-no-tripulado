@@ -1,0 +1,23 @@
+# Búsqueda en el mundo 'bosque_grande' (valle de 420 x 420 m con lomas y cerros).
+# El launch agrega 'terreno' (el DEM); las alturas son sobre el suelo.
+busqueda_incendio:
+  ros__parameters:
+    zona: [-210.0, 210.0, -210.0, 210.0]   # xmin, xmax, ymin, ymax del bosque [m]
+    patron: serpentina        # avanza hacia el frente del dron (franjas: boustrophedon)
+    separacion: 70.0          # entre barridos [m]
+    altura_busqueda: 30.0     # sobre el suelo; los árboles miden hasta ~8 m
+    anticipacion: 50.0        # mira el relieve esta distancia hacia adelante [m]
+    velocidad: 5.0
+    velocidad_vertical: 3.0
+    aceleracion: 1.5
+    alcance_vision: 150.0     # para el mapa de cobertura y el corte del rayo [m]
+    # Órbita por encima de las copas (el planificador no sabe dónde hay árboles).
+    altura_orbita: 18.0
+    altura_minima_copas: 14.0
+    radio: 14.0
+    omega: 0.12
+    # Evasión: no avanza a menos de 10 m sobre el relieve que tiene adelante
+    # (primero sube); el LiDAR rodea lo que esté a menos de 3 m del camino.
+    altura_seguridad: 10.0
+    radio_evasion: 3.0
+    alcance_evasion: 20.0

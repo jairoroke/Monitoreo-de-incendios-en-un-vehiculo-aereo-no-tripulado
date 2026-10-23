@@ -1,0 +1,3 @@
+Modelo de OpenGameArt (https://opengameart.org/content/animated-animales-low-poly), licencia CC0 (dominio público).
+Archivo original: Animal Pack Vol.2 by @Quaternius/OBJ/Wolf.obj de https://opengameart.org/sites/default/files/Animal%20Pack%20Vol.2%20by%20%40Quaternius.zip
+Girado a Z arriba con la cabeza hacia +x y escalado a 0.95 m de alto por scripts/preparar_fauna.py.

@@ -1,0 +1,83 @@
+\chapter{Cómo usar este libro}
+
+\section*{¿Para quién es?}
+
+Para cualquier persona que quiera entender, desde cero, cómo funciona un dron que vuela solo:
+estudiantes de licenciatura, ingenieros de otras áreas o curiosos. No
+necesitas saber de drones, de control automático ni de inteligencia artificial. Sí ayuda saber
+usar una computadora con Linux y recordar algo de física y matemáticas de bachillerato; cuando
+haga falta algo más, lo explicamos en el momento.
+
+El libro cuenta una historia real: cómo se construyó, en tres días de octubre de 2026, una
+simulación para el monitoreo de incendios forestales. En ella un dron Tarot Ironman 650
+despega, recorre un bosque de 420 por 420 metros, encuentra un incendio con su cámara, avisa
+sus coordenadas GPS y se queda vigilándolo. Cada pieza de esa historia es una excusa para explicar
+un concepto.
+
+\section*{Cómo está organizado}
+
+\begin{description}
+  \item[Parte I. Lo básico.] Qué es un dron y cómo vuela, la física mínima que hace falta, qué es
+        una simulación y qué es ROS~2, el ``sistema nervioso'' que conecta todas las piezas.
+  \item[Parte II. El control.] Cómo se consigue que el dron vaya exactamente a donde queremos aunque
+        sople el viento: control PID, modos deslizantes, super-twisting y el tema central del
+        proyecto, la discretización implícita.
+  \item[Parte III. Visión.] Qué es una imagen para una computadora, cómo funciona una cámara y cómo
+        una red neuronal (YOLO) aprende a reconocer fuego y humo.
+  \item[Parte IV. Construir la simulación.] La instalación y cómo se metieron en Gazebo el dron, sus
+        motores, el bosque, las montañas, los animales y el incendio.
+  \item[Parte V. Autonomía.] Cómo el dron decide qué hacer: recorrer el bosque, evitar árboles y
+        montañas, estimar dónde está el fuego, confirmarlo y avisar. También cómo volar con un
+        piloto automático real (ArduPilot).
+  \item[Parte VI. Manos a la obra.] Un tutorial para hacer tu primer vuelo, la lista de órdenes y
+        cómo se verificó que todo funciona.
+\end{description}
+
+Al final hay un \textbf{glosario} con todas las palabras raras.
+
+Si solo quieres usar la simulación, puedes ir directo al capítulo~\ref{cap:primer-vuelo}
+(``Tu primer vuelo''). Si quieres entenderla, léelo en orden: cada parte se apoya en la anterior.
+
+\section*{Los recuadros}
+
+\begin{recuerda}
+Lo más importante del tema, en pocas palabras. Si solo lees esto, ya te llevas la idea.
+\end{recuerda}
+
+\begin{consejo}
+Trucos prácticos que ahorran tiempo o problemas.
+\end{consejo}
+
+\begin{ejemplo}
+Una comparación con algo cotidiano para entender un concepto abstracto.
+\end{ejemplo}
+
+\begin{tecnico}
+Detalles matemáticos o de programación. Si es tu primera lectura, sáltalos sin culpa.
+\end{tecnico}
+
+\begin{aviso}
+Errores que es fácil cometer y que pueden romper algo o hacerte perder horas.
+\end{aviso}
+
+\begin{leccion}
+Problemas reales que aparecieron durante el desarrollo y cómo se resolvieron. Son de lo más
+valioso del libro: así se trabaja de verdad.
+\end{leccion}
+
+\begin{ejercicio}
+Algo que puedes hacer en la simulación para comprobar lo que acabas de leer.
+\end{ejercicio}
+
+\section*{Convenciones de escritura}
+
+\begin{itemize}
+  \item Las órdenes que se escriben en la terminal aparecen en recuadros grises:
+\begin{lstlisting}[style=bash]
+ros2 launch cuadrirotor_sim simulacion.launch.py
+\end{lstlisting}
+  \item Los nombres de archivos, programas y tópicos van en letra de máquina: \cod{busqueda_incendio}.
+  \item \cod{~} significa tu carpeta personal (\cod{/home/tu_usuario}).
+  \item Las distancias están en metros, los ángulos en radianes o grados (se indica) y el tiempo
+        en segundos.
+\end{itemize}

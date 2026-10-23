@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- Generado por scripts/preparar_fauna.py; no editar a mano. Solo visual: sin
+     gravedad ni colisión, lo mueve el nodo 'fauna'. -->
+<sdf version="1.9">
+  <model name="fauna_venado">
+    <link name="link">
+      <gravity>false</gravity>
+      <inertial><mass>1</mass></inertial>
+      <visual name="v0">
+        <geometry><mesh><uri>meshes/venado_0.stl</uri></mesh></geometry>
+        <material><ambient>0.012 0.012 0.012 1</ambient><diffuse>0.012 0.012 0.012 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+      </visual>
+      <visual name="v1">
+        <geometry><mesh><uri>meshes/venado_1.stl</uri></mesh></geometry>
+        <material><ambient>0.780 0.690 0.522 1</ambient><diffuse>0.780 0.690 0.522 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+      </visual>
+      <visual name="v2">
+        <geometry><mesh><uri>meshes/venado_2.stl</uri></mesh></geometry>
+        <material><ambient>0.380 0.184 0.075 1</ambient><diffuse>0.380 0.184 0.075 1</diffuse><specular>0.05 0.05 0.05 1</specular></material>
+      </visual>
+    </link>
+  </model>
+</sdf>
