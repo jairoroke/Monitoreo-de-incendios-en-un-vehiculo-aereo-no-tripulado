@@ -119,6 +119,16 @@ queda al borde (rotores saturados 40–80 % del tiempo): el horizonte debe cubri
 puro más el filtro de velocidad, además de τ_m. Con k1 = 10, el explícito da menos error de
 posición que el compensado (1.25 frente a 1.73 cm). Figura: `~/corridas/campana_actitud/sensibilidad_ganancia.png`.
 
+Retardo puro en el modelo (`retardo_actitud`, 25 oct 2026, `~/corridas/retardo`): en el canal
+simplificado de `test/test_sta.py` permite N = 1 sin perder la insensibilidad a la ganancia
+(banda 0.0225 frente a 0.060 con N = 8), pero **en Gazebo no**: con D = 1 o 2 y N ≤ 2 el dron
+se cae, y con D = 2 y N = 4 queda igual que sin modelar el retardo (0.73–0.78°, rotores
+saturados 75 % del tiempo). Lo que limita el horizonte en Gazebo no es el retardo puro sino
+otra diferencia de modelo que 1/g amplifica (g ≈ 0.06 con N = 1). Candidatos: el motor de
+Gazebo retrasa la velocidad del rotor y el par va con ω² (con subida y bajada distintas), el
+promedio móvil de la velocidad angular y el desfase entre el temporizador de ROS y la
+odometría. La configuración que funciona sigue siendo N = 8 sin retardo modelado.
+
 ## Cámara del dron
 
 Con `mision:=busqueda` la ventana trae solo el panel "Detección YOLO" (`config/gazebo_gui_yolo.config`); en las demás misiones trae el panel "Cámara del dron" (a la derecha), que muestra en vivo la
