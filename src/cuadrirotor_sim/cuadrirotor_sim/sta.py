@@ -39,6 +39,8 @@ nu_{k+1} = nu_k - Ts k2 xi y u_k = (s~ - s_k) / Ts.
                   u_m en u_m,k+D), la inclusión se plantea sobre H_t = D Ts + H
                   y u_k = ((s~ - s_k - ds)/H - (1 - g) u_m,k+D) / g.
                   Con tau = 0, N = 1 y D = 0 coincide con el implícito.
+                  tau puede darse por componente: en guiñada el par de reacción del
+                  rotor (I_r dω/dt) llega sin el retraso del motor y anula el polo.
 
 La predicción nominal supone d = 0, de modo que con perturbación la banda en
 régimen es |s| ~ Ts |d|, independiente de la ganancia. Con
@@ -66,13 +68,14 @@ class SuperTwistingAdaptativo:
         self.adaptativo = adaptativo
         self.estimar = estimar_perturbacion and esquema in ('semi_implicito', 'implicito')
         self.H = horizonte * Ts
-        if tau_actuador > 0:
-            self.g = 1.0 - (tau_actuador / self.H) * (1.0 - np.exp(-self.H / tau_actuador))
-            self.a_act = np.exp(-Ts / tau_actuador)
-        else:
-            self.g, self.a_act = 1.0, 0.0
+        # tau_actuador puede ser distinto por componente; tau = 0 es actuador instantáneo.
+        tau = np.broadcast_to(np.asarray(tau_actuador, dtype=float), (n,))
+        con = tau > 0
+        tau_s = np.where(con, tau, 1.0)
+        self.g = np.where(con, 1.0 - (tau_s / self.H) * (1.0 - np.exp(-self.H / tau_s)), 1.0)
+        self.a_act = np.where(con, np.exp(-Ts / tau_s), 0.0)
         # Promedio de u_m durante un periodo: u_q + (u_m - u_q) b1.
-        self.b1 = (tau_actuador / Ts) * (1.0 - self.a_act)
+        self.b1 = np.where(con, (tau_s / Ts) * (1.0 - self.a_act), 0.0)
         self.u_m = self.u_ult = np.zeros(n)
         self.cola = [np.zeros(n) for _ in range(retardo)]   # comandos enviados que aún no actúan
         self.s_prev = self.u_prev = None

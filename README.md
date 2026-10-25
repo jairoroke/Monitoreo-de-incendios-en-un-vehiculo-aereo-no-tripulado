@@ -129,6 +129,32 @@ Gazebo retrasa la velocidad del rotor y el par va con ω² (con subida y bajada 
 promedio móvil de la velocidad angular y el desfase entre el temporizador de ROS y la
 odometría. La configuración que funciona sigue siendo N = 8 sin retardo modelado.
 
+Causa (25 oct 2026, `~/corridas/guinada`): es la **guiñada**. En las corridas que se caen
+el primer canal que explota es z (τ_z salta a −2.5 N·m con s_R,z ≈ 0 y los rotores alternan
+0/680). El `MulticopterMotorModel` impone la velocidad de la junta del rotor (ω/10) en cada
+paso, así que acelerar un rotor (I_r = 2.4·10⁻⁴ kg·m²) da un par de reacción del mismo signo
+que el aerodinámico y sin el retraso del motor: por rad/s, 9.6·10⁻⁵·s frente a 2.0·10⁻³ N·m,
+un cero en ≈ 21 rad/s que casi cancela el polo del motor (25 rad/s). En guiñada el actuador
+es casi instantáneo, y el compensado, que invierte 40 ms que ahí no existen, amplifica las
+altas frecuencias por 1/g (16, 8.7, 4.7 y 2.7 con N = 1, 2, 4, 8). En una réplica a 1 kHz
+el motor asimétrico 30/50 ms, el ω², la junta, la media móvil y las latencias no tumban a
+N = 1 en alabeo; la reacción del rotor sí satura la guiñada con N ≤ 2. Solución: τ_m por eje
+(`tau_motor_guinada`, 0 por omisión). Órbita con viento, t > 20 s:
+
+| Compensado | k1 = 10 | k1 = 120 | adaptativa | rotores saturados |
+|---|---|---|---|---|
+| N = 8, τ_z = 40 ms (antes) | 0.68° · 1.73 cm | 0.66° · 1.68 cm | 0.66° · 1.68 cm | 0 % |
+| N = 4, τ_z = 40 ms (antes) | 0.51° · 1.26 cm | 0.76° · 2.00 cm | 0.71° · 1.76 cm | 37–79 % |
+| N = 8, τ_z = 0 | 0.67° · 1.75 cm | 0.65° · 1.62 cm | | 0 % |
+| N = 4, τ_z = 0 | 0.54° · 1.07 cm | 0.52° · 0.98 cm | | 0 % |
+| N = 2, τ_z = 0 | 0.48° · 0.80 cm | 0.46° · 0.73 cm | 0.46° · 0.74 cm | 0 % |
+| N = 1, τ_z = 0 | 0.47° · 0.73 cm | se cae | se cae | 98–100 % |
+
+Con N = 2 el compensado vuelve a ser insensible a la ganancia (también con Shtessel, k1 →
+182) y mejora a N = 8 en 30 % de actitud y 55 % de posición, con chattering de 2 a 5 rad/s
+por muestra. N = 1 solo aguanta con k1 bajo: queda la discrepancia que 1/g ≈ 16 amplifica.
+En un dron real el efecto es mayor (sin el factor 10 de `rotorVelocitySlowdownSim`).
+
 ## Cámara del dron
 
 Con `mision:=busqueda` la ventana trae solo el panel "Detección YOLO" (`config/gazebo_gui_yolo.config`); en las demás misiones trae el panel "Cámara del dron" (a la derecha), que muestra en vivo la

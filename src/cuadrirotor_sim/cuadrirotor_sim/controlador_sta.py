@@ -35,6 +35,8 @@ class ControladorSTA(ControladorPD):
             ('mu_actitud', [0.05, 0.05, 0.05]), ('k1_max_actitud', 200.0),
             ('w1_actitud', 40.0),
             ('tau_motor', 0.04), ('horizonte_actitud', 8),
+            # En guiñada la reacción del rotor al acelerar cancela el polo del motor.
+            ('tau_motor_guinada', 0.0),
             ('retardo_actitud', 0),             # muestras de retardo puro del actuador
         ])
         c = {x.name: x.value for x in p}
@@ -52,7 +54,8 @@ class ControladorSTA(ControladorPD):
             3, self.Ts, c['esquema_actitud'], k1_0=c['k1_actitud'], eps=1.0,
             w1=c['w1_actitud'], g1=2.0, mu=np.array(c['mu_actitud']), k1_min=1.0, eta=1.0,
             k1_max=c['k1_max_actitud'], adaptativo=c['adaptativo_actitud'],
-            tau_actuador=c['tau_motor'], horizonte=c['horizonte_actitud'],
+            tau_actuador=[c['tau_motor'], c['tau_motor'], c['tau_motor_guinada']],
+            horizonte=c['horizonte_actitud'],
             retardo=c['retardo_actitud'])
         self.s_R = np.zeros(3)
 

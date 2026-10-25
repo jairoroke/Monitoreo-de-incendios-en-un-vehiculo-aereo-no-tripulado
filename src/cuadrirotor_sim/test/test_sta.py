@@ -86,3 +86,14 @@ def test_retardo_en_el_modelo_permite_horizonte_corto():
     con = [banda_con_actuador('compensado', k, D_planta=2, D_modelo=2) for k in (10.0, 120.0)]
     assert sin[1] > 3 * sin[0]
     assert np.isclose(con[0], con[1], rtol=0.05)
+
+
+def test_actuador_distinto_por_componente():
+    # tau por componente equivale a un STA escalar por eje (guiñada sin retraso del motor).
+    rng = np.random.default_rng(2)
+    taus = [0.04, 0.04, 0.0]
+    v = STA(3, 0.005, 'compensado', k1_0=10.0, adaptativo=False, tau_actuador=taus, horizonte=2)
+    e = [STA(1, 0.005, 'compensado', k1_0=10.0, adaptativo=False, tau_actuador=t, horizonte=2)
+         for t in taus]
+    for s in rng.uniform(-1, 1, (200, 3)):
+        assert np.allclose(v(s), [c(s[i:i + 1])[0] for i, c in enumerate(e)])
