@@ -9,7 +9,7 @@ imágenes de la cámara del Tarot 650 durante la búsqueda de incendios forestal
 Hasta ahora la simulación usaba YOLO26n de Ultralytics: se descargan pesos
 entrenados en COCO (80 clases de objetos cotidianos) y se ajustan a nuestras dos
 clases. Funciona muy bien, pero la red es una caja negra: no se ve qué hace por
-dentro, no se puede modificar con libertad y, es difícil
+dentro, no se puede modificar con libertad y es difícil
 justificar cada decisión. Aquí abrimos esa caja. Cada pieza de YOLO26 se
 programa a mano, se prueba por separado y se explica con sus ecuaciones. Al final
 se entrena la red completa \emph{sin pesos preentrenados} y se compara con
