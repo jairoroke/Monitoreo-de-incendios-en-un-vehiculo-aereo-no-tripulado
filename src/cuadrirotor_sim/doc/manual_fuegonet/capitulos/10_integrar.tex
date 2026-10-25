@@ -1,0 +1,116 @@
+\chapter{Usar la red: imágenes, ONNX y ROS 2}
+\label{cap:integrar}
+
+\begin{enpocas}
+Detectar en una foto, exportar la red a ONNX para la computadora a bordo y
+conectarla a la simulación para que el Tarot 650 busque el incendio con
+FuegoNet. Archivos: \cod{red_fuego/inferir.py}, \cod{red_fuego/exportar.py},
+\cod{detector_yolo.py} y \cod{launch/simulacion.launch.py}.
+\end{enpocas}
+
+\section{Detectar en una imagen}
+
+\paso{25} \textbf{Probar el detector.}
+La clase \cod{Detector} carga \cod{mejor.pt}, aplica letterbox, corre la red,
+aplica el umbral de confianza (no hay NMS) y regresa las cajas a las coordenadas
+de la imagen original.
+
+Al cargar los pesos, \cod{fusionar} pliega cada BatchNorm en su convolución.
+Al inferir, BatchNorm es solo una transformación lineal fija por canal:
+\begin{equation}
+y = \gamma\,\frac{W x - \mu}{\sqrt{\sigma^2+\epsilon}} + \beta
+  = \underbrace{\frac{\gamma}{\sqrt{\sigma^2+\epsilon}}W}_{W'}\,x
+  + \underbrace{\beta - \frac{\gamma\,\mu}{\sqrt{\sigma^2+\epsilon}}}_{b'},
+\end{equation}
+así que se puede meter dentro de los pesos de la convolución. Da exactamente las
+mismas cajas (el mAP no cambia) con una operación menos por capa.
+
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -m cuadrirotor_sim.red_fuego.inferir \
+  ~/datasets/fuegonet/n_150/mejor.pt ~/datasets/incendio_bosque/images/val/00420.jpg salida.jpg
+\end{lstlisting}
+
+\input{capitulos/resultados_inferencia}
+
+\section{Exportar a ONNX}
+
+ONNX es un formato abierto que entienden TensorRT (Jetson), OpenVINO (Intel),
+ONNX Runtime (cualquier CPU) y muchos otros. Como FuegoNet no tiene NMS, todo el
+detector cabe en el grafo y la salida es un solo tensor $(1, 300, 6)$.
+
+\paso{26} \textbf{Instalar \cod{onnx} sin romper NumPy.}
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/pip install onnx onnxruntime
+~/.venvs/yolo/bin/pip install "numpy==1.26.4" "ml-dtypes<0.6"   # ¡regresar NumPy!
+\end{lstlisting}
+
+\begin{leccion}
+Al instalar \cod{onnx}, pip subió NumPy de 1.26 a 2.5 y \cod{ml-dtypes} a una
+versión que exige NumPy~2. ROS 2 Jazzy está compilado contra NumPy~1 y el nodo
+detector habría dejado de arrancar. La segunda línea regresa NumPy y fija una
+\cod{ml-dtypes} compatible. Comprueba siempre con
+\cod{python -c "import numpy; print(numpy.__version__)"} después de instalar algo.
+\end{leccion}
+
+\paso{27} \textbf{Exportar y comprobar.}
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -m cuadrirotor_sim.red_fuego.exportar \
+  ~/datasets/fuegonet/n_150/mejor.pt ~/datasets/fuegonet/fuegonet_n.onnx \
+  ~/datasets/incendio_bosque/images/val/00420.jpg
+\end{lstlisting}
+El tercer argumento es una foto para comprobar que ONNX Runtime y PyTorch dan las
+mismas detecciones.
+\input{capitulos/resultados_onnx}
+
+\begin{leccion}
+La primera comprobación usaba una entrada de ruido y comparaba las 300 filas. Daba
+diferencias de más de 500 píxeles. No era un error de exportación: con ruido casi
+todas las confianzas son $\approx 0$ y están empatadas, y \cod{topk} las ordena
+distinto en PyTorch y en ONNX Runtime, así que se comparaban cajas de celdas
+distintas. Ahora se usa una foto real y solo las detecciones con confianza
+$\ge 0.25$. La diferencia baja a $3\times10^{-5}$ píxeles.
+\end{leccion}
+
+\section{Conectar FuegoNet a la simulación}
+
+El nodo \cod{detector_yolo} ya publicaba \cod{/cuadrirotor/detecciones}
+(\cod{vision_msgs/Detection2DArray}) con YOLO26 de Ultralytics. Para no duplicar
+el nodo, \cod{inferir.py} incluye una envoltura \cod{ComoYolo} con la misma
+interfaz que usa el nodo (\cod{.names} y \cod{.predict(...)[0].boxes}). El nodo
+elige según la terminación del archivo de pesos:
+
+\begin{lstlisting}[style=py]
+        if v['modelo'].endswith('.fuegonet.pt'):
+            from cuadrirotor_sim.red_fuego.inferir import ComoYolo
+            self.modelo, self.etiqueta = ComoYolo(v['modelo'], v['dispositivo']), 'FuegoNet'
+        else:
+            self.modelo, self.etiqueta = YOLO(v['modelo']), 'YOLO26'
+\end{lstlisting}
+
+\paso{28} \textbf{Instalar los pesos en el paquete.}
+\begin{lstlisting}[style=bash]
+cp ~/datasets/fuegonet/n_150/mejor.pt \
+   ~/ros2_ws/src/cuadrirotor_sim/yolo/incendio_fuegonet_n.fuegonet.pt
+cd ~/ros2_ws && colcon build --packages-select cuadrirotor_sim --symlink-install
+source install/setup.bash
+\end{lstlisting}
+
+\paso{29} \textbf{Volar la búsqueda con FuegoNet.}
+El \emph{launch} tiene un argumento nuevo, \cod{red}, que elige el detector
+(\cod{yolo26}, el de siempre, o \cod{fuegonet}):
+\begin{lstlisting}[style=bash]
+ros2 launch cuadrirotor_sim simulacion.launch.py mision:=busqueda red:=fuegonet
+\end{lstlisting}
+\begin{resultado}
+En la terminal aparece \cod{YOLO listo: incendio_fuegonet_n.fuegonet.pt, clases
+\{0: 'fuego', 1: 'humo'\}} y el panel «Detección YOLO» de Gazebo muestra
+\cod{FuegoNet  xx ms} en la esquina. El resto de la misión (barrido, verificación,
+aviso GPS) no cambia, porque los mensajes son los mismos.
+\end{resultado}
+
+\begin{consejo}
+Para comparar las dos redes en las mismas condiciones, corre la misión dos veces
+con el mismo \cod{mundo}, \cod{foco_x}, \cod{foco_y} y \cod{viento}, una con
+\cod{red:=yolo26} y otra con \cod{red:=fuegonet}, y compara el tiempo hasta la
+confirmación y las falsas alarmas.
+\end{consejo}

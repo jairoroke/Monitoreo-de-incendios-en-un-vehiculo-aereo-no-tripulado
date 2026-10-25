@@ -1,0 +1,68 @@
+\chapter{Qué sigue}
+\label{cap:siguientes}
+
+\begin{enpocas}
+Resumen de lo construido, cómo reportarlo en un artículo o reporte y experimentos que valen la
+pena con FuegoNet.
+\end{enpocas}
+
+\section{Lo que ya tienes}
+
+\begin{itemize}
+  \item Una implementación propia, legible y sin dependencias externas de la
+        arquitectura y la receta de entrenamiento de YOLO26: bloques C3k2, SPPF y
+        C2PSA, cabeza sin DFL ni NMS, TAL con STAL, pérdida de dos cabezas con
+        ProgLoss y optimizador MuSGD.
+  \item Un modelo entrenado desde cero, medido con un protocolo propio y
+        comparado contra la implementación de referencia.
+  \item La red conectada a la misión de búsqueda (\cod{red:=fuegonet}) y exportable
+        a ONNX.
+\end{itemize}
+
+\section{Cómo reportarlo}
+
+\begin{enumerate}
+  \item En el marco teórico, describe la arquitectura con la
+        figura~\ref{fig:arquitectura} y la tabla~\ref{tab:capas}, y la asignación y la
+        pérdida con las ecuaciones de los capítulos~\ref{cap:asignacion}
+        y~\ref{cap:perdida}.
+  \item En la metodología, da el dataset (tabla~\ref{tab:dataset}), los aumentos, los
+        hiperparámetros del capítulo~\ref{cap:entrenar} y el protocolo de medición
+        (mismo código para todas las redes).
+  \item En los resultados, la tabla comparativa del capítulo~\ref{cap:evaluar} y las
+        curvas de entrenamiento. Separa con claridad «arquitectura igual» de «pesos
+        iniciales distintos».
+  \item Cita YOLO26 por su documentación de Ultralytics, YOLOv10 por la idea de la
+        doble asignación sin NMS, TOOD por TAL y el trabajo de Muon por el optimizador.
+\end{enumerate}
+
+\section{Experimentos sugeridos}
+
+\begin{description}
+  \item[Ablación] Quitar una pieza a la vez y medir: sin STAL (\cod{lado_min=0}),
+        sin atención (\cod{atencion=False} en \cod{h22} y sin \cod{C2PSA}), SGD en
+        lugar de MuSGD (\cod{--optimizador sgd}), sin ProgLoss ($w$ fijo en 0.5). Cada
+        pieza debe justificar su lugar.
+  \item[Escala] Entrenar FuegoNet-s (\cod{--escala s}, 10~M parámetros) y ver si el
+        aumento de mAP compensa la latencia en la computadora a bordo.
+  \item[Preentrenamiento propio] Entrenar primero con un dataset público de incendios
+        reales (por ejemplo D-Fire) y después ajustar con el simulador. En el simulador
+        FuegoNet ya supera al YOLO26n preentrenado, pero con imágenes reales el
+        preentrenamiento suele pesar mucho más.
+  \item[Varias semillas] Repetir FuegoNet-n y el YOLO26n desde cero con 3 semillas
+        (\cod{--semilla}) y reportar media y desviación. Solo así se puede afirmar que
+        una diferencia de 0.01 en mAP50-95 es real.
+  \item[Fusionar BatchNorm] Plegar cada BatchNorm en su convolución y quitar la cabeza
+        o2m antes de inferir, para acercar la latencia en CPU a la de Ultralytics.
+  \item[Del simulador al mundo real] Probar la red con videos reales de incendios
+        tomados con dron. Ahí se verá si los aumentos de color alcanzan o si hace
+        falta aleatorizar más el simulador (texturas, luz, niebla).
+  \item[Clase «distractor»] Agregar una tercera clase para lo que hoy da falsas
+        alarmas (rocas oscuras, claros con sol) en lugar de dejarlo como fondo.
+\end{description}
+
+\begin{recuerda}
+Una red que mide bien en validación todavía no está probada en vuelo. La prueba
+final es la misión completa: cuánto tarda el Tarot 650 en encontrar y confirmar
+el foco, y cuántas falsas alarmas da en el camino.
+\end{recuerda}

@@ -1,4 +1,4 @@
-"""Detector de incendios con YOLO26 sobre la cámara del dron.
+"""Detector de incendios con YOLO26 (o FuegoNet) sobre la cámara del dron.
 
 Lee /cuadrirotor/camara, corre el modelo (entrenado con scripts/entrenar_yolo.py
 sobre imágenes del simulador, clases 'fuego' y 'humo') y publica:
@@ -6,6 +6,9 @@ sobre imágenes del simulador, clases 'fuego' y 'humo') y publica:
                              de la imagen, para emparejarla con la pose del dron.
   /cuadrirotor/camara_yolo   la imagen con las cajas dibujadas (se ve en el panel
                              "Detección YOLO" de Gazebo).
+
+Si el modelo termina en .fuegonet.pt se usa FuegoNet, la red propia tipo YOLO26
+de cuadrirotor_sim/red_fuego (misma salida, sin ultralytics).
 
 Se ejecuta con el Python de ~/.venvs/yolo (ultralytics, PyTorch con CUDA), que
 también ve los paquetes de ROS 2.
@@ -34,7 +37,11 @@ class DetectorYolo(Node):
         v = {x.name: x.value for x in p}
         if not os.path.exists(v['modelo']):
             raise RuntimeError(f"No existe el modelo YOLO: {v['modelo']!r}")
-        self.modelo = YOLO(v['modelo'])
+        if v['modelo'].endswith('.fuegonet.pt'):
+            from cuadrirotor_sim.red_fuego.inferir import ComoYolo
+            self.modelo, self.etiqueta = ComoYolo(v['modelo'], v['dispositivo']), 'FuegoNet'
+        else:
+            self.modelo, self.etiqueta = YOLO(v['modelo']), 'YOLO26'
         self.conf, self.disp = v['confianza'], v['dispositivo']
         self.ultima = None
         self.create_subscription(Image, '/cuadrirotor/camara', self._imagen, 2)
@@ -74,7 +81,7 @@ class DetectorYolo(Node):
             cv2.rectangle(dibujo, (int(x0), int(y0)), (int(x1), int(y1)), c, 2)
             cv2.putText(dibujo, f'{nombre} {conf:.2f}', (int(x0), max(14, int(y0) - 5)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, c, 2)
-        cv2.putText(dibujo, f'YOLO26  {ms:.0f} ms', (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+        cv2.putText(dibujo, f'{self.etiqueta}  {ms:.0f} ms', (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.55,
                     (255, 255, 255), 2)
         self.pub.publish(salida)
         out = Image(header=msg.header, height=msg.height, width=msg.width, encoding='rgb8',

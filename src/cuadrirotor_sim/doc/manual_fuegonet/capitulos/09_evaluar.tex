@@ -1,0 +1,64 @@
+\chapter{Medir y comparar con YOLO26n}
+\label{cap:evaluar}
+
+\begin{enpocas}
+Cómo se calcula el mAP, por qué hay que medir todas las redes con el mismo
+código y cómo queda FuegoNet-n frente a YOLO26n entrenado desde cero y frente al
+YOLO26n preentrenado que usa hoy la simulación. Archivos:
+\cod{red_fuego/metricas.py} y \cod{red_fuego/evaluar.py}.
+\end{enpocas}
+
+\section{mAP en pocas palabras}
+
+Para un umbral de traslape $\tau$, una predicción es un \textbf{verdadero
+positivo} si su IoU con una etiqueta de su misma clase es $\ge\tau$ y esa
+etiqueta no la tomó antes otra predicción con más confianza. Ordenando todas las
+predicciones de la clase por confianza se obtienen la precisión
+$P = \text{VP}/(\text{VP}+\text{FP})$ y la exhaustividad (\emph{recall})
+$R = \text{VP}/N_{\text{etiquetas}}$ para cada corte. El \textbf{AP} es el área
+bajo la curva $P(R)$ (con su envolvente decreciente, integrada en 101 puntos,
+como COCO).
+\begin{itemize}
+  \item \textbf{mAP50}: AP con $\tau = 0.5$, promediado en las dos clases. ¿Encontró el fuego?
+  \item \textbf{mAP50-95}: promedio en $\tau = 0.50, 0.55,\dots,0.95$. ¿Qué tan
+        ajustada está la caja? Es la métrica principal.
+\end{itemize}
+
+\paso{23} \textbf{Escribir el acumulador de métricas.}
+\cod{Acumulador.agregar(pred, gt)} recibe, imagen por imagen, las predicciones
+$(N,6)$ y las etiquetas $(M,5)$, y guarda qué predicciones fueron VP en cada uno de
+los 10 umbrales. \cod{calcular()} ordena todo por confianza y devuelve mAP50,
+mAP50-95, AP por clase, y P y R con confianza $\ge 0.25$ (el umbral del
+detector en vuelo).
+
+\begin{aviso}
+Ultralytics reporta su propio mAP, pero calcula la validación con imágenes
+rectangulares agrupadas, su propio emparejamiento y su propio preprocesamiento.
+Comparar su número con el nuestro sería comparar dos reglas distintas.
+\cod{evaluar.py} corre las \emph{tres} redes sobre las mismas 600 imágenes
+originales ($640\times480$), con umbral de confianza $0.001$ y hasta 300
+detecciones, y las mide con el \emph{mismo} \cod{Acumulador}.
+\end{aviso}
+
+\section{Las tres redes que se comparan}
+
+\begin{description}
+  \item[FuegoNet-n] nuestra red, desde cero, 150 épocas (capítulo~\ref{cap:entrenar}).
+  \item[YOLO26n desde cero] la red de Ultralytics con la misma arquitectura
+        (\cod{yolo26n.yaml}, \cod{pretrained=False}), los mismos datos, aumentos y
+        épocas. Es el \textbf{control}: si nuestro código está bien, debe salir
+        parecida a FuegoNet-n.
+  \item[YOLO26n preentrenado] el de la simulación (\cod{yolo/incendio_yolo26n.pt}):
+        pesos de COCO ajustados 60 épocas a fuego y humo.
+\end{description}
+
+\paso{24} \textbf{Correr la evaluación.}
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -m cuadrirotor_sim.red_fuego.evaluar \
+  --datos ~/datasets/combinado_incendio_bosque_incendio_bosque_grande/data.yaml \
+  --fuegonet ~/datasets/fuegonet/n_150/mejor.pt \
+  --yolo ~/datasets/fuegonet/yolo26n_desde_cero/weights/best.pt yolo/incendio_yolo26n.pt \
+  --salida ~/datasets/fuegonet/evaluacion.json
+\end{lstlisting}
+
+\input{capitulos/resultados_evaluacion}

@@ -1,0 +1,62 @@
+\chapter*{Cómo usar este manual}
+\addcontentsline{toc}{chapter}{Cómo usar este manual}
+
+Este manual explica, paso a paso, cómo se construyó \textbf{FuegoNet}: una red
+neuronal de detección de objetos con la misma arquitectura que YOLO26, escrita
+desde cero en PyTorch, para reconocer \textbf{fuego} y \textbf{humo} en las
+imágenes de la cámara del Tarot 650 durante la búsqueda de incendios forestales.
+
+Hasta ahora la simulación usaba YOLO26n de Ultralytics: se descargan pesos
+entrenados en COCO (80 clases de objetos cotidianos) y se ajustan a nuestras dos
+clases. Funciona muy bien, pero la red es una caja negra: no se ve qué hace por
+dentro, no se puede modificar con libertad y, en un trabajo de investigación, es difícil
+justificar cada decisión. Aquí abrimos esa caja. Cada pieza de YOLO26 se
+programa a mano, se prueba por separado y se explica con sus ecuaciones. Al final
+se entrena la red completa \emph{sin pesos preentrenados} y se compara con
+YOLO26n usando el mismo código de medición.
+
+\section*{Qué necesitas saber antes}
+\begin{itemize}
+  \item Python básico (funciones, clases, listas) y saber correr un comando en la terminal.
+  \item La idea de neurona, convolución, IoU y mAP. Si no la tienes, lee primero
+        el capítulo «Redes neuronales y YOLO sin complicaciones» del libro de la
+        simulación (\cod{doc/manual}). Aquí se repasa lo indispensable.
+  \item No hace falta saber PyTorch: cada vez que aparece algo nuevo se explica.
+\end{itemize}
+
+\section*{Cómo está organizado}
+\begin{description}
+  \item[Parte I] Qué es YOLO26, qué tiene de nuevo y cómo preparar el entorno y los datos.
+  \item[Parte II] Los bloques de la red (convoluciones, C3k2, SPPF, atención) y cómo se
+        ensamblan en columna vertebral, cuello y cabeza.
+  \item[Parte III] Cómo aprende: la asignación de etiquetas (TAL y STAL), la función
+        de pérdida de dos cabezas, los aumentos de datos y el ciclo de entrenamiento
+        con el optimizador MuSGD.
+  \item[Parte IV] Cómo se mide, cómo se compara con YOLO26n y cómo se conecta a ROS 2
+        para que el dron la use en vuelo.
+\end{description}
+
+Cada capítulo avanza en \textbf{pasos numerados}. Al final de cada paso hay un
+recuadro «Lo que debes ver» con la salida esperada; si lo que ves es distinto,
+no sigas: algo quedó mal en ese paso.
+
+\section*{Convenciones}
+\begin{itemize}
+  \item Los comandos se escriben así y se corren desde \cod{~/ros2_ws/src/cuadrirotor_sim}:
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -m cuadrirotor_sim.red_fuego.modelo
+\end{lstlisting}
+  \item Las rutas, archivos y nombres de variables van en \cod{monoespaciado}.
+  \item El código completo está en \cod{cuadrirotor_sim/red_fuego/} y en el
+        apéndice~\ref{ap:codigo}. En el texto solo aparecen las partes importantes.
+  \item Los nombres del código están en español (\cod{Cuello}, \cod{Atencion},
+        \cod{AsignadorTAL}) para que se lean junto con el texto. Entre paréntesis se
+        da el nombre en inglés que vas a encontrar en los artículos.
+\end{itemize}
+
+\begin{nota}
+Todos los números de este manual (parámetros, tiempos, mAP) salieron de correr el
+código en la computadora del laboratorio: Ubuntu, PyTorch 2.14 con CUDA 13 y una
+tarjeta NVIDIA RTX~5060~Ti de 16~GB. En otra máquina los tiempos cambian, pero
+las métricas deben salir parecidas.
+\end{nota}

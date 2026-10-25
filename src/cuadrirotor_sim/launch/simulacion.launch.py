@@ -154,8 +154,9 @@ def busqueda(context, share):
     vehiculo = LaunchConfiguration('vehiculo').perform(context)
     venv = os.path.expanduser(os.environ.get('YOLO_VENV', '~/.venvs/yolo'))
     python = os.path.join(venv, 'bin', 'python3')
-    modelo = LaunchConfiguration('modelo_yolo').perform(context) or \
-        os.path.join(share, 'yolo', 'incendio_yolo26n.pt')
+    red = LaunchConfiguration('red').perform(context)
+    modelo = LaunchConfiguration('modelo_yolo').perform(context) or os.path.join(
+        share, 'yolo', 'incendio_fuegonet_n.fuegonet.pt' if red == 'fuegonet' else 'incendio_yolo26n.pt')
     for ruta, que in ((python, 'entorno de Python de YOLO'), (modelo, 'modelo YOLO')):
         if not os.path.exists(ruta):
             raise RuntimeError(f'No se encontró el {que}: {ruta}')
@@ -354,6 +355,8 @@ def generate_launch_description():
         DeclareLaunchArgument('foco_x', default_value='', description='bosque_grande: x del foco [m]'),
         DeclareLaunchArgument('foco_y', default_value='', description='bosque_grande: y del foco [m]'),
         DeclareLaunchArgument('modelo_yolo', default_value='', description='Pesos de YOLO (.pt)'),
+        DeclareLaunchArgument('red', default_value='yolo26', choices=['yolo26', 'fuegonet'],
+                              description='Detector: YOLO26n ajustado o FuegoNet (red propia)'),
         DeclareLaunchArgument('Ts', default_value='0.005', description='Periodo de muestreo [s]'),
         DeclareLaunchArgument('viento', default_value='false', description='Aplicar perturbación de viento'),
         DeclareLaunchArgument('csv', default_value='', description='Ruta del CSV de registro'),

@@ -1,0 +1,119 @@
+\chapter{Preparar el entorno y los datos}
+\label{cap:preparar}
+
+\begin{enpocas}
+Comprobar que PyTorch ve la tarjeta gráfica, conocer el dataset de fuego y humo
+que genera el simulador y crear la carpeta donde vivirá la red.
+\end{enpocas}
+
+\paso{1} \textbf{Comprobar el entorno de Python.}
+La simulación ya tiene un entorno virtual para YOLO en \cod{~/.venvs/yolo}, con
+PyTorch, OpenCV y Ultralytics. FuegoNet solo necesita PyTorch, OpenCV, NumPy y
+PyYAML; Ultralytics se usa únicamente para comparar.
+
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -c "import torch, cv2, numpy; \
+  print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0)); \
+  print(cv2.__version__, numpy.__version__)"
+\end{lstlisting}
+
+\begin{resultado}
+\ttfamily\small 2.14.1+cu130 True NVIDIA GeForce RTX 5060 Ti\\
+4.11.0 1.26.4
+\end{resultado}
+
+\begin{aviso}
+NumPy debe ser de la serie 1.x en este entorno: el puente de ROS 2 Jazzy
+(\cod{cv_bridge}, \cod{rclpy}) está compilado contra NumPy~1. Si instalas algo con
+\cod{pip} y te sube NumPy a 2.x, regrésalo de inmediato:
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/pip install "numpy==1.26.4" "ml-dtypes<0.6"
+\end{lstlisting}
+Nos pasó al instalar \cod{onnx}: pip subió NumPy a 2.5 sin avisar
+(capítulo~\ref{cap:integrar}).
+\end{aviso}
+
+\paso{2} \textbf{Conocer el dataset.}
+Las imágenes salen del propio simulador. \cod{scripts/capturar_dataset.py}
+vuela el dron sobre los mundos \cod{bosque} y \cod{bosque_grande} con focos de
+fuego en lugares al azar y escribe, para cada foto, un archivo de texto con las
+cajas. Son dos datasets que se usan juntos:
+
+\begin{table}[H]
+\centering\small
+\caption{Dataset de fuego y humo (imágenes de $640\times480$).}
+\label{tab:dataset}
+\begin{tabular}{llrrrr}
+\toprule
+\textbf{Dataset} & \textbf{Parte} & \textbf{Imágenes} & \textbf{Cajas fuego} & \textbf{Cajas humo} & \textbf{Sin objetos}\\
+\midrule
+\cod{incendio_bosque} & train & 2\,700 & 1\,927 & 2\,203 & 309\\
+                      & val   &   300 &   213 &   239 &  40\\
+\cod{incendio_bosque_grande} & train & 2\,700 & 891 & 1\,898 & 755\\
+                      & val   &   300 &    98 &   213 &  81\\
+\midrule
+\textbf{Total} & train & 5\,400 & 2\,818 & 4\,101 & 1\,064\\
+               & val   &   600 &   311 &   452 &   121\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las imágenes «sin objetos» son importantes: le enseñan a la red que un claro
+iluminado o una roca oscura \emph{no} son fuego (una roca dio falsos positivos al
+principio; por eso se agregó el mundo grande).
+
+El formato es el de YOLO. Cada imagen \cod{images/train/00001.jpg} tiene su
+\cod{labels/train/00001.txt} con una línea por objeto:
+\begin{lstlisting}
+0 0.472461 0.706724 0.070710 0.106154
+1 0.480463 0.596074 0.145035 0.212378
+\end{lstlisting}
+El primer número es la clase (0 = fuego, 1 = humo) y los otros cuatro son el
+centro $(c_x, c_y)$, el ancho $w$ y el alto $h$ de la caja, \emph{divididos} entre
+el ancho y el alto de la imagen (todo queda entre 0 y 1). Un archivo vacío
+significa «no hay nada que detectar».
+
+Los dos datasets se juntan con un \cod{data.yaml} que lista ambas carpetas:
+\begin{lstlisting}
+train:
+  - /home/jairo/datasets/incendio_bosque/images/train
+  - /home/jairo/datasets/incendio_bosque_grande/images/train
+val:
+  - /home/jairo/datasets/incendio_bosque/images/val
+  - /home/jairo/datasets/incendio_bosque_grande/images/val
+names:
+  0: fuego
+  1: humo
+\end{lstlisting}
+Está en \cod{~/datasets/combinado_incendio_bosque_incendio_bosque_grande/}
+(lo creó \cod{scripts/entrenar_yolo.py}).
+
+\begin{tecnico}
+De las 6\,919 cajas de entrenamiento, 195 tienen un lado menor de 16 píxeles.
+Son focos vistos desde lejos. Sin un cuidado especial (STAL,
+capítulo~\ref{cap:asignacion}) esas cajas pueden quedar sin ninguna celda
+que aprenda de ellas.
+\end{tecnico}
+
+\paso{3} \textbf{Crear la carpeta de la red.}
+FuegoNet vive dentro del paquete de ROS 2 como un subpaquete de Python, para que
+el nodo detector la pueda importar después:
+
+\begin{lstlisting}[style=bash]
+cd ~/ros2_ws/src/cuadrirotor_sim
+mkdir -p cuadrirotor_sim/red_fuego
+touch cuadrirotor_sim/red_fuego/__init__.py
+\end{lstlisting}
+
+Al terminar el manual la carpeta tendrá estos archivos:
+\begin{lstlisting}
+cuadrirotor_sim/red_fuego/
+  __init__.py        bloques.py      modelo.py      asignador.py
+  perdida_iou.py     perdida.py      datos.py       optimizador.py
+  metricas.py        entrenar.py     evaluar.py     inferir.py
+  exportar.py
+\end{lstlisting}
+
+Como son módulos de un paquete, se ejecutan con \cod{python -m} desde la
+carpeta del paquete (así funcionan los \cod{import} relativos como
+\cod{from .bloques import Conv}).

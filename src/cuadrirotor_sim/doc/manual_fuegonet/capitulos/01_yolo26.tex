@@ -1,0 +1,110 @@
+\chapter{Qué es YOLO26 y qué vamos a copiar}
+\label{cap:yolo26}
+
+\begin{enpocas}
+Qué hace un detector de una etapa, de dónde viene la familia YOLO y cuáles son
+las cinco ideas de YOLO26 que vamos a programar: cabeza sin DFL, inferencia
+sin NMS, ProgLoss, STAL y el optimizador MuSGD.
+\end{enpocas}
+
+\section{El problema: encontrar fuego y humo en una imagen}
+
+La cámara del Tarot 650 entrega imágenes de $640\times480$ píxeles. Un
+\textbf{detector de objetos} debe responder, para cada imagen, una lista de
+\emph{cajas}: dónde está cada objeto (un rectángulo $x_1,y_1,x_2,y_2$), qué
+es (fuego o humo) y qué tan seguro está (una confianza entre 0 y 1). La
+misión de búsqueda (\cod{busqueda_incendio}) usa esas cajas para decidir hacia
+dónde volar y cuándo confirmar el incendio.
+
+\begin{ejemplo}
+Piensa en un vigilante en una torre forestal. No le basta saber que «en algún
+lado hay humo»: necesita señalar con el dedo \emph{dónde}, y distinguir una
+columna de humo de una nube baja. Eso es la detección: clasificar \emph{y}
+localizar.
+\end{ejemplo}
+
+\section{Detectores de una etapa: la idea de YOLO}
+
+YOLO (\emph{You Only Look Once}, 2016) propuso mirar la imagen una sola vez.
+La red reduce la imagen a una \textbf{rejilla} de celdas y cada celda predice,
+en una sola pasada, si hay un objeto cerca de su centro, de qué clase es y
+dónde están los bordes de su caja. No hay una etapa previa que proponga
+regiones (como en Faster R-CNN), por eso es rápido y sirve en un dron.
+
+Desde entonces la familia ha cambiado mucho. Para este manual importan tres pasos:
+\begin{description}
+  \item[YOLOv8 (2023)] Sin anclas predefinidas: cada celda predice distancias a los
+        cuatro lados de la caja. Asignación de etiquetas \emph{alineada a la tarea}
+        (TAL). Cada distancia se predice como una distribución sobre 16 valores
+        (DFL, \emph{Distribution Focal Loss}).
+  \item[YOLOv10 (2024)] Dos cabezas: una «uno a muchos» para entrenar y otra
+        «uno a uno» para inferir. La segunda da una sola caja por objeto y
+        elimina el NMS.
+  \item[YOLO11 (2024)] Bloques C3k2 y atención espacial C2PSA en la columna vertebral.
+\end{description}
+
+\section{Lo nuevo de YOLO26}
+
+YOLO26 (Ultralytics, 2025--2026) junta lo anterior y lo simplifica pensando en
+equipos pequeños, como la computadora a bordo de un dron:
+
+\begin{enumerate}
+  \item \textbf{Sin DFL} (\cod{reg_max = 1}). Cada distancia es un solo número, no
+        una distribución de 16. La cabeza es más pequeña, la exportación a ONNX
+        o TensorRT es directa y la pérdida usa L1 en lugar de DFL.
+  \item \textbf{Sin NMS, de extremo a extremo.} Usa la doble cabeza de YOLOv10. La
+        salida ya trae una caja por objeto: basta ordenar por confianza.
+  \item \textbf{ProgLoss.} El peso entre las dos cabezas cambia durante el entrenamiento:
+        empieza dominando la de muchos positivos (aprende rápido) y termina dominando
+        la de uno a uno (la que se usa al final).
+  \item \textbf{STAL} (\emph{Small-Target-Aware Label assignment}). Las cajas muy pequeñas
+        se agrandan al elegir celdas candidatas para que nunca se queden sin «responsable».
+        A gran altura, un foco de fuego mide pocos píxeles: esto nos importa mucho.
+  \item \textbf{MuSGD.} Un optimizador que mezcla SGD con Muon, un método nacido para
+        entrenar modelos de lenguaje que «ortogonaliza» la actualización de cada
+        matriz de pesos.
+\end{enumerate}
+
+\begin{nota}
+Estas cinco ideas se tomaron leyendo el código fuente de Ultralytics 8.4
+(archivos \cod{cfg/models/26/yolo26.yaml}, \cod{nn/modules/head.py},
+\cod{utils/tal.py}, \cod{utils/loss.py} y \cod{optim/muon.py}). FuegoNet
+reproduce la arquitectura y la receta de entrenamiento, pero su código es
+independiente: no importa nada de Ultralytics.
+\end{nota}
+
+\section{El plan: FuegoNet}
+
+FuegoNet copia la escala \textbf{n} (\emph{nano}) de YOLO26, la más pequeña y la
+que ya usa la simulación. La tabla~\ref{tab:plan} resume qué se copia y dónde
+está cada pieza.
+
+\begin{table}[H]
+\centering\small
+\caption{Piezas de YOLO26 y su archivo en \cod{cuadrirotor_sim/red_fuego/}.}
+\label{tab:plan}
+\begin{tabularx}{\textwidth}{>{\raggedright}p{4.2cm}X>{\ttfamily}p{2.6cm}}
+\toprule
+\textbf{Pieza} & \textbf{Qué hace} & \textrm{\textbf{Archivo}}\\
+\midrule
+Conv, C3k2, SPPF, C2PSA & Bloques que extraen características & bloques.py\\
+Columna, cuello y cabeza & La red completa, de la imagen a las cajas & modelo.py\\
+TAL + STAL & Decide qué celdas responden por cada objeto & asignador.py\\
+Pérdida E2E + ProgLoss & Mide el error de las dos cabezas & perdida.py\\
+CIoU & Traslape de cajas para la pérdida & perdida\_iou.py\\
+Mosaico, afín, HSV & Aumentos de datos & datos.py\\
+MuSGD & Optimizador & optimizador.py\\
+Ciclo de entrenamiento, EMA & Entrenar y guardar el mejor modelo & entrenar.py\\
+mAP50, mAP50-95 & Medir & metricas.py, evaluar.py\\
+Detector, ONNX & Usar la red & inferir.py, exportar.py\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{recuerda}
+Que la arquitectura sea la misma no significa que los resultados lo sean. YOLO26n
+de la simulación partió de pesos entrenados con 118\,000 imágenes de COCO;
+FuegoNet empieza con pesos al azar y solo ve nuestras 5\,400 imágenes. Por eso,
+en el capítulo~\ref{cap:evaluar} se compara además con un YOLO26n entrenado
+\emph{también desde cero}: esa es la comparación justa que valida nuestro código.
+\end{recuerda}

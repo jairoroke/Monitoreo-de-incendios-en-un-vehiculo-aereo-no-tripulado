@@ -1,0 +1,231 @@
+\chapter{Los bloques de construcción}
+\label{cap:bloques}
+
+\begin{enpocas}
+Las seis piezas con las que se arma YOLO26, cada una como una clase de PyTorch:
+\cod{Conv}, \cod{Cuello}, \cod{C3k2}, \cod{SPPF}, \cod{Atencion} y \cod{C2PSA}.
+Todo está en \cod{red_fuego/bloques.py}.
+\end{enpocas}
+
+\section{Cómo se escribe una capa en PyTorch}
+
+En PyTorch toda capa es una clase que hereda de \cod{nn.Module}. En
+\cod{__init__} se crean las sub-capas (las que tienen pesos) y en
+\cod{forward} se dice qué se hace con la entrada. Los datos viajan como
+\textbf{tensores} de cuatro dimensiones $(B, C, H, W)$: $B$ imágenes del lote,
+$C$ canales y $H\times W$ píxeles. Una imagen RGB de $640\times640$ entra como
+$(1, 3, 640, 640)$.
+
+\section{Conv: la unidad mínima}
+
+\paso{4} \textbf{Escribir \cod{Conv}.}
+Toda convolución de YOLO va seguida de una normalización por lotes
+(BatchNorm) y de la activación SiLU, $\mathrm{SiLU}(x) = x\,\sigma(x)$:
+
+\begin{lstlisting}[style=py]
+class Conv(nn.Module):
+    def __init__(self, c1, c2, k=1, s=1, g=1, d=1, act=True):
+        super().__init__()
+        self.conv = nn.Conv2d(c1, c2, k, s, relleno(k, d), groups=g, dilation=d, bias=False)
+        self.bn = nn.BatchNorm2d(c2, eps=1e-3, momentum=0.03)
+        self.act = nn.SiLU(inplace=True) if act else nn.Identity()
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+\end{lstlisting}
+
+\begin{itemize}
+  \item \cod{c1}, \cod{c2}: canales de entrada y de salida. \cod{k}: tamaño del filtro.
+  \item \cod{s}: paso (\emph{stride}). Con \cod{s=2} el mapa sale a la mitad de alto
+        y de ancho: así es como la red «se aleja» de la imagen.
+  \item \cod{relleno(k)} $=\lfloor k/2\rfloor$ conserva el tamaño cuando \cod{s=1}.
+  \item No lleva sesgo (\cod{bias=False}) porque BatchNorm ya suma uno.
+  \item \cod{g} (grupos) permite la convolución \emph{en profundidad}
+        (\cod{DWConv}): cada canal tiene su propio filtro y no se mezcla con los demás.
+        Cuesta $C$ veces menos y la usa la cabeza de clases.
+\end{itemize}
+
+Una \cod{Conv} $3\times3$ de 64 a 128 canales tiene $64\cdot128\cdot9 = 73\,728$
+pesos más $2\cdot128$ de BatchNorm: $73\,984$ parámetros.
+
+\section{Cuello (bottleneck) y C3k}
+
+\paso{5} \textbf{Escribir el cuello de botella residual.}
+Dos \cod{Conv} $3\times3$ y un atajo que suma la entrada:
+$\mathbf{y} = \mathbf{x} + f(\mathbf{x})$. El atajo deja pasar el gradiente sin
+obstáculos y permite apilar muchas capas (la idea de ResNet).
+
+\begin{lstlisting}[style=py]
+class Cuello(nn.Module):
+    def __init__(self, c1, c2, atajo=True, k=(3, 3), e=0.5):
+        super().__init__()
+        c_ = int(c2 * e)
+        self.cv1 = Conv(c1, c_, k[0])
+        self.cv2 = Conv(c_, c2, k[1])
+        self.suma = atajo and c1 == c2
+
+    def forward(self, x):
+        y = self.cv2(self.cv1(x))
+        return x + y if self.suma else y
+\end{lstlisting}
+
+\cod{C3k} es un CSP (\emph{Cross Stage Partial}) de tres convoluciones: la
+entrada se proyecta por dos caminos; uno pasa por dos cuellos y el otro no; al
+final se concatenan. Es más rico que un cuello solo y lo usan las etapas
+profundas.
+
+\section{C3k2: el bloque principal}
+
+\paso{6} \textbf{Escribir \cod{C3k2}.}
+Es el bloque que más se repite en YOLO26 (8 de las 23 capas). La
+figura~\ref{fig:c3k2} muestra su flujo:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small,>=Stealth,
+  caja/.style={draw,rounded corners=2pt,minimum height=7mm,minimum width=14mm,fill=NavyBlue!8},
+  op/.style={draw,circle,inner sep=1pt,fill=Goldenrod!20}]
+\node[caja] (in) {entrada $c_1$};
+\node[caja,right=6mm of in] (cv1) {Conv $1{\times}1$};
+\node[op,right=6mm of cv1] (sp) {$\div 2$};
+\node[caja,right=8mm of sp,yshift=-9mm] (m1) {sub 1};
+\node[caja,right=6mm of m1] (m2) {sub 2};
+\node[right=3mm of m2] (pts) {$\cdots$};
+\node[op,right=30mm of sp,yshift=9mm] (cat) {C};
+\node[caja,right=6mm of cat] (cv2) {Conv $1{\times}1$};
+\node[caja,right=6mm of cv2] (out) {salida $c_2$};
+\draw[->] (in)--(cv1); \draw[->] (cv1)--(sp);
+\draw[->] (sp) |- node[pos=0.75,above]{$c$} (cat);
+\draw[->] (sp) |- node[pos=0.75,below]{$c$} (m1);
+\draw[->] (m1)--(m2); \draw[->] (m2)--(pts);
+\draw[->] (m1.north) -- ++(0,4mm) -| ([xshift=-1mm]cat.south);
+\draw[->] (m2.north) -- ++(0,2mm) -| ([xshift=1mm]cat.south);
+\draw[->] (cat)--node[above]{$(2{+}n)c$}(cv2); \draw[->] (cv2)--(out);
+\end{tikzpicture}
+\caption{C3k2. La entrada se proyecta a $2c$ canales y se parte en dos. La
+segunda mitad pasa por $n$ subbloques en cadena; \emph{todas} las salidas
+intermedias se concatenan (C) y una Conv $1{\times}1$ las mezcla. El subbloque
+es un \cod{Cuello}, un \cod{C3k} o un \cod{Cuello} + atención.}
+\label{fig:c3k2}
+\end{figure}
+
+\begin{lstlisting}[style=py]
+class C3k2(nn.Module):
+    def __init__(self, c1, c2, n=1, c3k=False, e=0.5, atencion=False, atajo=True):
+        super().__init__()
+        self.c = int(c2 * e)
+        self.cv1 = Conv(c1, 2 * self.c, 1)
+        self.cv2 = Conv((2 + n) * self.c, c2, 1)
+        if atencion:
+            sub = lambda: nn.Sequential(Cuello(self.c, self.c, atajo),
+                                        BloquePSA(self.c, cabezas=max(self.c // 64, 1)))
+        elif c3k:
+            sub = lambda: C3k(self.c, self.c, 2, atajo)
+        else:
+            sub = lambda: Cuello(self.c, self.c, atajo)
+        self.m = nn.ModuleList(sub() for _ in range(n))
+
+    def forward(self, x):
+        y = list(self.cv1(x).chunk(2, 1))      # dos mitades de c canales
+        for m in self.m:
+            y.append(m(y[-1]))                  # cada subbloque toma la última salida
+        return self.cv2(torch.cat(y, 1))
+\end{lstlisting}
+
+\begin{consejo}
+El parámetro \cod{e} (expansión) controla el ancho interno. YOLO26 usa
+\cod{e=0.25} en las dos primeras etapas (mapas grandes, conviene ahorrar
+cómputo) y \cod{e=0.5} en las demás.
+\end{consejo}
+
+\section{SPPF: ver a varias escalas}
+
+\paso{7} \textbf{Escribir \cod{SPPF}.}
+Al final de la columna vertebral el mapa mide $20\times20$. Para que cada celda
+vea su contexto (¿esa mancha naranja está junto a una columna de humo?),
+\cod{SPPF} aplica tres \emph{max-pool} de $5\times5$ en cadena. Tres
+ventanas de 5 equivalen a ventanas de 5, 9 y 13 celdas, sin agregar ningún
+parámetro. Las cuatro versiones se concatenan y se mezclan; YOLO26 agrega
+además un atajo $\mathbf{y} \leftarrow \mathbf{y} + \mathbf{x}$.
+
+\begin{lstlisting}[style=py]
+    def forward(self, x):
+        y = [self.cv1(x)]
+        for _ in range(self.n):              # n = 3
+            y.append(self.m(y[-1]))          # MaxPool2d(5, 1, 2)
+        y = self.cv2(torch.cat(y, 1))
+        return x + y if self.suma else y
+\end{lstlisting}
+
+\section{Atención: que cada celda mire a todas las demás}
+
+\paso{8} \textbf{Escribir \cod{Atencion}, \cod{BloquePSA} y \cod{C2PSA}.}
+Una convolución solo mira a sus vecinos. La \textbf{autoatención} deja que cada
+celda consulte a \emph{todas} las demás. Si el mapa tiene $N = H\,W$ celdas, de
+cada una se calculan tres vectores con convoluciones $1\times1$: una
+\emph{consulta} $\mathbf{q}_i$, una \emph{llave} $\mathbf{k}_j$ y un
+\emph{valor} $\mathbf{v}_j$. La salida de la celda $i$ es un promedio pesado de
+los valores:
+\begin{equation}
+\mathbf{y}_i = \sum_{j=1}^{N} a_{ij}\,\mathbf{v}_j,\qquad
+a_{ij} = \frac{\exp(\mathbf{q}_i\cdot\mathbf{k}_j/\sqrt{d_k})}
+              {\sum_{l}\exp(\mathbf{q}_i\cdot\mathbf{k}_l/\sqrt{d_k})}.
+\end{equation}
+El peso $a_{ij}$ es grande cuando la consulta de $i$ «se parece» a la llave de
+$j$. Con varias \emph{cabezas} se hacen varias atenciones en paralelo, cada una
+con su parte de los canales. Se suma además una convolución $3\times3$ en
+profundidad sobre $\mathbf{v}$, que le dice a la red dónde está cada celda
+(codificación posicional).
+
+\begin{lstlisting}[style=py]
+    def forward(self, x):
+        B, C, H, W = x.shape
+        q, k, v = self.qkv(x).view(B, self.cabezas, 2 * self.dk + self.dc, H * W).split(
+            [self.dk, self.dk, self.dc], dim=2)
+        a = ((q * self.escala).transpose(-2, -1) @ k).softmax(dim=-1)   # (B, h, N, N)
+        y = (v @ a.transpose(-2, -1)).view(B, C, H, W) + self.pe(v.reshape(B, C, H, W))
+        return self.proy(y)
+\end{lstlisting}
+
+\begin{aviso}
+La matriz $a$ tiene $N\times N$ elementos. Con el mapa de $20\times20$ son
+$400^2 = 160\,000$ por cabeza: barato. Con el de $80\times80$ serían
+$41$ millones. Por eso YOLO26 solo pone atención en la etapa más profunda
+($P_5$).
+\end{aviso}
+
+\cod{BloquePSA} es como un bloque de transformador: atención con atajo y luego
+una pequeña red de avance (dos Conv $1\times1$) también con atajo.
+\cod{C2PSA} aplica la atención solo a la mitad de los canales (estilo CSP) y la
+otra mitad pasa directo.
+
+\paso{9} \textbf{Probar cada bloque.}
+Antes de ensamblar nada hay que comprobar que cada bloque recibe y entrega las
+formas correctas:
+\begin{lstlisting}[style=py]
+import torch
+from cuadrirotor_sim.red_fuego.bloques import Conv, Cuello, C3k2, SPPF, C2PSA
+x = torch.randn(1, 64, 80, 80)
+for nombre, b in [('Conv 3x3 s=2', Conv(64, 128, 3, 2)), ('Cuello', Cuello(64, 64)),
+                  ('C3k2 n=1', C3k2(64, 128, 1, False, 0.25)), ('C3k2 c3k', C3k2(64, 128, 1, True)),
+                  ('SPPF', SPPF(64, 64, atajo=True)), ('C2PSA', C2PSA(64, 64))]:
+    y = b(x)
+    print(nombre, tuple(x.shape), '->', tuple(y.shape), sum(p.numel() for p in b.parameters()))
+\end{lstlisting}
+
+\begin{resultado}
+\begin{lstlisting}
+Conv 3x3 s=2   (1, 64, 80, 80) -> (1, 128, 40, 40)   73984 parámetros
+Cuello         (1, 64, 80, 80) -> (1, 64, 80, 80)   37056 parámetros
+C3k2 n=1       (1, 64, 80, 80) -> (1, 128, 80, 80)   26080 parámetros
+C3k2 c3k       (1, 64, 80, 80) -> (1, 128, 80, 80)   78848 parámetros
+SPPF           (1, 64, 80, 80) -> (1, 64, 80, 80)   10432 parámetros
+C2PSA          (1, 64, 80, 80) -> (1, 64, 80, 80)   16352 parámetros
+\end{lstlisting}
+\end{resultado}
+
+\begin{ejercicio}
+Cambia \cod{e=0.25} por \cod{e=0.5} en el \cod{C3k2 n=1} y vuelve a contar los
+parámetros. ¿Por qué crecen casi cuatro veces si solo duplicaste el ancho?
+(Pista: en una convolución los pesos son $c_{\text{in}}\cdot c_{\text{out}}\cdot k^2$.)
+\end{ejercicio}

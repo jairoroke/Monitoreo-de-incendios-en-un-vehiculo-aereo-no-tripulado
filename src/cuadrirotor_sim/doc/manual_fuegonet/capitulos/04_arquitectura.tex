@@ -1,0 +1,251 @@
+\chapter{Ensamblar la red: columna, cuello y cabeza}
+\label{cap:arquitectura}
+
+\begin{enpocas}
+Cómo se apilan los bloques para formar FuegoNet-n, cómo la cabeza convierte
+mapas de características en cajas y por qué la salida ya no necesita NMS. Todo
+está en \cod{red_fuego/modelo.py}.
+\end{enpocas}
+
+\section{La forma general}
+
+Un detector moderno tiene tres partes (figura~\ref{fig:arquitectura}):
+\begin{description}
+  \item[Columna vertebral (\emph{backbone})] reduce la imagen paso a paso
+        (a 1/2, 1/4, 1/8, 1/16 y 1/32) y aumenta los canales. Los mapas
+        pequeños «saben» mucho (contexto) pero ven con poco detalle.
+  \item[Cuello (\emph{neck}, PAN-FPN)] mezcla las escalas: primero de arriba abajo
+        (el contexto de $P_5$ baja a $P_4$ y $P_3$) y luego de abajo arriba (el
+        detalle de $P_3$ sube a $P_4$ y $P_5$).
+  \item[Cabeza (\emph{head})] en cada celda de las tres escalas predice 4 distancias
+        y 2 puntuaciones de clase.
+\end{description}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\scriptsize,>=Stealth,
+  b/.style={draw,rounded corners=2pt,minimum width=26mm,minimum height=5.5mm,fill=NavyBlue!8,align=center},
+  n/.style={b,minimum width=25mm,fill=ForestGreen!10},
+  h/.style={b,minimum width=21mm,minimum height=8mm,fill=BrickRed!10}]
+\foreach \t [count=\i from 0] in {Imagen $640^2{\times}3$, Conv s2 \;$320^2{\times}16$,
+  Conv s2 \;$160^2{\times}32$, C3k2 \;$160^2{\times}64$, Conv s2 \;$80^2{\times}64$,
+  C3k2 \;$80^2{\times}128$, Conv s2 \;$40^2{\times}128$, C3k2 \;$40^2{\times}128$,
+  Conv s2 \;$20^2{\times}256$, C3k2 \;$20^2{\times}256$, SPPF \;$20^2{\times}256$,
+  C2PSA \;$20^2{\times}256$}
+  \node[b] (b\i) at (0,-0.8*\i) {\t};
+\foreach \i [evaluate=\i as \j using int(\i+1)] in {0,...,10} \draw[->] (b\i)--(b\j);
+% cuello: de arriba abajo (x = 4.6) y de abajo arriba (x = 8.2)
+\node[n] (h16) at (4.6,-4.0) {C3k2 \;$80^2{\times}64$};
+\node[n] (h13) at (4.6,-5.6) {C3k2 \;$40^2{\times}128$};
+\node[n] (h19) at (8.2,-5.6) {C3k2 \;$40^2{\times}128$};
+\node[n] (h22) at (8.2,-8.8) {C3k2+atn \;$20^2{\times}256$};
+% cabeza
+\node[h] (d3) at (11.8,-4.0) {cabeza $P_3$\\ $80^2$ celdas, paso 8};
+\node[h] (d4) at (11.8,-5.6) {cabeza $P_4$\\ $40^2$ celdas, paso 16};
+\node[h] (d5) at (11.8,-8.8) {cabeza $P_5$\\ $20^2$ celdas, paso 32};
+\node[h,fill=Goldenrod!15] (sal) at (11.8,-10.4) {8\,400 celdas $\rightarrow$\\ 300 de mayor confianza};
+% conexiones
+\draw[->] (b5.east) -- (h16.west);
+\draw[->] (b7.east) -- (h13.west);
+\draw[->] (b11.east) -- (h22.west);
+\draw[->] ([xshift=-6mm]h13.south |- b11.east) -- node[pos=0.5,left]{sube $\times2$} ([xshift=-6mm]h13.south);
+\draw[->] ([xshift=-6mm]h13.north) -- node[left]{sube $\times2$} ([xshift=-6mm]h16.south);
+\draw[->] ([xshift=6mm]h16.south) -- ++(0,-0.35) -| node[pos=0.25,above]{Conv s2} ([xshift=-6mm]h19.north);
+\draw[->] (h13.east) -- (h19.west);
+\draw[->] (h19.south) -- node[right]{Conv s2} (h22.north);
+\draw[->] (h16.east) -- (d3.west);
+\draw[->] (h19.east) -- (d4.west);
+\draw[->] (h22.east) -- (d5.west);
+\draw[->] (d5.south) -- (sal.north);
+\node[text=NavyBlue,font=\small\bfseries] at (0,0.7) {columna vertebral};
+\node[text=ForestGreen!60!black,font=\small\bfseries] at (6.4,-3.1) {cuello (PAN-FPN)};
+\node[text=BrickRed,font=\small\bfseries] at (11.8,-3.1) {cabeza};
+\end{tikzpicture}
+\caption{FuegoNet-n con una imagen de $640\times640$. Cada caja muestra el tamaño
+del mapa (alto$\times$ancho$\times$canales). Las flechas al cuello son
+concatenaciones.}
+\label{fig:arquitectura}
+\end{figure}
+
+\section{Escalas: n, s y m}
+
+YOLO26 define cada tamaño con dos números: un factor de profundidad (cuántas
+veces se repite cada bloque) y uno de anchura (cuántos canales). El archivo
+\cod{yolo26.yaml} escribe la red con los canales de la versión grande y se
+multiplican:
+
+\begin{lstlisting}[style=py]
+ESCALAS = {'n': (0.50, 0.25, 1024), 's': (0.50, 0.50, 1024), 'm': (0.50, 1.00, 512)}
+...
+c = lambda x: int(math.ceil(min(x, cmax) * anch / 8) * 8)   # canales múltiplos de 8
+n = lambda x: max(round(x * prof), 1)                        # repeticiones
+\end{lstlisting}
+
+Así, la capa que en el \emph{yaml} tiene 1\,024 canales queda con
+$1024\cdot0.25 = 256$ en la versión \textbf{n}.
+
+\section{La columna vertebral y el cuello}
+
+\paso{10} \textbf{Escribir \cod{FuegoNet.__init__}.}
+Se copian las 23 capas de \cod{yolo26.yaml} en el mismo orden. Los nombres
+\cod{b0}--\cod{b10} y \cod{h13}--\cod{h22} conservan el número de capa del
+\emph{yaml} para poder compararlos:
+
+\begin{lstlisting}[style=py]
+        self.b0 = Conv(3, c(64), 3, 2)                                   # P1/2
+        self.b1 = Conv(c(64), c(128), 3, 2)                              # P2/4
+        self.b2 = C3k2(c(128), c(256), n(2), c3k, 0.25)
+        self.b3 = Conv(c(256), c(256), 3, 2)                             # P3/8
+        self.b4 = C3k2(c(256), c(512), n(2), c3k, 0.25)                  # -> P3
+        self.b5 = Conv(c(512), c(512), 3, 2)                             # P4/16
+        self.b6 = C3k2(c(512), c(512), n(2), True)                       # -> P4
+        self.b7 = Conv(c(512), c(1024), 3, 2)                            # P5/32
+        self.b8 = C3k2(c(1024), c(1024), n(2), True)
+        self.b9 = SPPF(c(1024), c(1024), 5, 3, atajo=True)
+        self.b10 = C2PSA(c(1024), c(1024), n(2))                         # -> P5
+        self.sube = nn.Upsample(None, 2, 'nearest')
+        self.h13 = C3k2(c(1024) + c(512), c(512), n(2), True)
+        self.h16 = C3k2(c(512) + c(512), c(256), n(2), True)             # salida P3
+        self.h17 = Conv(c(256), c(256), 3, 2)
+        self.h19 = C3k2(c(256) + c(512), c(512), n(2), True)             # salida P4
+        self.h20 = Conv(c(512), c(512), 3, 2)
+        self.h22 = C3k2(c(512) + c(1024), c(1024), 1, True, 0.5, atencion=True)  # P5
+        self.cabeza = Cabeza(nc, (c(256), c(512), c(1024)))
+\end{lstlisting}
+
+\paso{11} \textbf{Escribir \cod{FuegoNet.forward}.}
+El recorrido se lee de arriba abajo como la figura:
+\begin{lstlisting}[style=py]
+    def forward(self, x):
+        x = self.b2(self.b1(self.b0(x)))
+        p3 = self.b4(self.b3(x))
+        p4 = self.b6(self.b5(p3))
+        p5 = self.b10(self.b9(self.b8(self.b7(p4))))
+        t4 = self.h13(torch.cat((self.sube(p5), p4), 1))     # de arriba abajo
+        s3 = self.h16(torch.cat((self.sube(t4), p3), 1))
+        s4 = self.h19(torch.cat((self.h17(s3), t4), 1))      # de abajo arriba
+        s5 = self.h22(torch.cat((self.h20(s4), p5), 1))
+        return self.cabeza([s3, s4, s5])
+\end{lstlisting}
+
+\begin{table}[H]
+\centering\small
+\caption{FuegoNet-n capa por capa (entrada $640\times640$, 2 clases).}
+\label{tab:capas}
+\begin{tabular}{rlllr}
+\toprule
+\textbf{Capa} & \textbf{Bloque} & \textbf{Entra de} & \textbf{Salida} & \textbf{Parámetros}\\
+\midrule
+0 & Conv $3{\times}3$ s2 & imagen & $320\times320\times16$ & 464\\
+1 & Conv $3{\times}3$ s2 & 0 & $160\times160\times32$ & 4\,672\\
+2 & C3k2 ($e=0.25$) & 1 & $160\times160\times64$ & 6\,640\\
+3 & Conv $3{\times}3$ s2 & 2 & $80\times80\times64$ & 36\,992\\
+4 & C3k2 ($e=0.25$) & 3 & $80\times80\times128$ & 26\,080\\
+5 & Conv $3{\times}3$ s2 & 4 & $40\times40\times128$ & 147\,712\\
+6 & C3k2 (C3k) & 5 & $40\times40\times128$ & 87\,040\\
+7 & Conv $3{\times}3$ s2 & 6 & $20\times20\times256$ & 295\,424\\
+8 & C3k2 (C3k) & 7 & $20\times20\times256$ & 346\,112\\
+9 & SPPF & 8 & $20\times20\times256$ & 164\,608\\
+10 & C2PSA & 9 & $20\times20\times256$ & 249\,728\\
+13 & C3k2 & sube(10) + 6 & $40\times40\times128$ & 119\,808\\
+16 & C3k2 & sube(13) + 4 & $80\times80\times64$ & 34\,304\\
+17 & Conv $3{\times}3$ s2 & 16 & $40\times40\times64$ & 36\,992\\
+19 & C3k2 & 17 + 13 & $40\times40\times128$ & 95\,232\\
+20 & Conv $3{\times}3$ s2 & 19 & $20\times20\times128$ & 147\,712\\
+22 & C3k2 + atención & 20 + 10 & $20\times20\times256$ & 463\,104\\
+23 & Cabeza (o2m + o2o) & 16, 19, 22 & $300\times6$ & 241\,956\\
+\midrule
+& \textbf{Total} & & & \textbf{2\,504\,580}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{La cabeza: de mapas a cajas}
+
+Las tres salidas del cuello tienen $80^2 + 40^2 + 20^2 = 8\,400$ celdas. Cada
+celda tiene un centro $(a_x, a_y)$ y un \textbf{paso} $s$ (8, 16 o 32 píxeles):
+el tamaño que ocupa en la imagen original. La cabeza predice para cada celda:
+\begin{itemize}
+  \item 4 distancias $(\ell, t, r, b)$ en unidades de celda, del centro a los lados
+        izquierdo, superior, derecho e inferior de la caja;
+  \item 2 \emph{logits}, uno por clase; la probabilidad es $\sigma(\text{logit})$.
+\end{itemize}
+La caja en píxeles es
+\begin{equation}
+x_1 = s\,(a_x - \ell),\quad y_1 = s\,(a_y - t),\quad
+x_2 = s\,(a_x + r),\quad y_2 = s\,(a_y + b).
+\label{eq:caja}
+\end{equation}
+
+\begin{tecnico}
+YOLOv8 y YOLO11 predicen cada distancia como una distribución de probabilidad
+sobre 16 valores enteros (DFL) y toman su media. YOLO26 la quita
+(\cod{reg_max = 1}): la capa final da 4 números en lugar de 64. El error de
+las distancias se mide con L1 (capítulo~\ref{cap:perdida}).
+\end{tecnico}
+
+\paso{12} \textbf{Escribir la clase \cod{Cabeza}.}
+Hay dos ramas por escala: la de cajas (dos Conv $3\times3$ y una $1\times1$ que
+da 4 canales) y la de clases (convoluciones en profundidad, más ligeras). Y todo
+esto aparece \textbf{dos veces}: la cabeza «uno a muchos» (o2m) y su copia «uno
+a uno» (o2o).
+
+\begin{lstlisting}[style=py]
+    def forward(self, x):
+        if not self.training:   # al inferir solo se usa la o2o: la o2m ni se calcula
+            return self.decodificar(self._ramas(x, self.caja_o2o, self.clase_o2o))
+        o2m = self._ramas(x, self.caja, self.clase)
+        # La o2o ve las características desconectadas del grafo: su gradiente
+        # no modifica la columna vertebral (la entrena solo la rama o2m).
+        o2o = self._ramas([xi.detach() for xi in x], self.caja_o2o, self.clase_o2o)
+        return {'o2m': o2m, 'o2o': o2o}
+\end{lstlisting}
+
+En entrenamiento se devuelven las dos ramas para calcular la pérdida. En
+inferencia solo se calcula la o2o y se decodifica (la o2m queda como peso muerto):
+
+\begin{lstlisting}[style=py]
+    def decodificar(self, p):
+        puntos, paso = anclas(p['mapas'], self.pasos)
+        cajas = dist_a_caja(p['dist'], puntos) * paso          # ecuación de la caja
+        conf, clase = p['logits'].sigmoid().max(-1)
+        conf, idx = conf.topk(min(self.max_det, conf.shape[1]), dim=1)
+        ...
+        return torch.cat((cajas, conf[..., None], clase[..., None]), -1)  # (B, 300, 6)
+\end{lstlisting}
+
+\section{¿Por qué ya no hace falta NMS?}
+
+Con la asignación clásica, varias celdas vecinas aprenden a detectar el mismo
+foco de fuego y todas dan una caja parecida. Hay que borrar los duplicados con
+\textbf{NMS} (\emph{Non-Maximum Suppression}): ordenar por confianza y quitar las
+cajas que traslapan mucho con una mejor. El NMS es un ciclo con condiciones que
+no se paraleliza bien, su costo depende del número de cajas y complica exportar
+la red.
+
+La cabeza o2o se entrena de modo que \emph{solo una celda} por objeto tenga
+confianza alta (capítulo~\ref{cap:asignacion}). A la salida basta tomar las 300
+puntuaciones más altas y aplicar un umbral. La salida tiene siempre la misma
+forma $(B, 300, 6)$ y el grafo exportado a ONNX termina ahí.
+
+\paso{13} \textbf{Probar la red completa.}
+\begin{lstlisting}[style=bash]
+~/.venvs/yolo/bin/python -m cuadrirotor_sim.red_fuego.modelo
+\end{lstlisting}
+\begin{resultado}
+\begin{lstlisting}
+FuegoNet-n: 2.50 M parámetros, salida (1, 300, 6)
+FuegoNet-s: 9.95 M parámetros, salida (1, 300, 6)
+FuegoNet-m: 21.78 M parámetros, salida (1, 300, 6)
+\end{lstlisting}
+El YOLO26n ajustado de la simulación tiene 2.53~M parámetros. La diferencia
+(1.3\,\%) viene de detalles menores de la cabeza. La arquitectura es la misma.
+\end{resultado}
+
+\begin{nota}
+La inicialización importa. \cod{iniciar_sesgos} pone el sesgo de la última capa
+de clases en $\log\!\big(5 / (n_c\,(640/s)^2)\big)$, una probabilidad inicial de
+alrededor de 0.0001 por celda: al principio la red cree que \emph{todo} es fondo,
+que es lo correcto en el 99.9\,\% de las celdas. Sin esto, la pérdida de clase de
+las primeras iteraciones es enorme y el entrenamiento se vuelve inestable.
+\end{nota}
