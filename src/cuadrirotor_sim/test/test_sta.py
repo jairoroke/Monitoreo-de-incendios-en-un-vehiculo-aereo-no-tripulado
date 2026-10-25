@@ -41,3 +41,48 @@ def test_estimacion_reduce_la_banda_a_orden_ts_cuadrado():
     b1 = banda('implicito', 0.01, 3.0, estimar=True)
     b2 = banda('implicito', 0.005, 3.0, estimar=True)
     assert b1 < 1e-4 and 3.5 < b1 / b2 < 4.5
+
+
+def test_compensado_sin_actuador_es_el_implicito():
+    rng = np.random.default_rng(1)
+    a = STA(2, 0.005, 'implicito', k1_0=5.0, adaptativo=False)
+    b = STA(2, 0.005, 'compensado', k1_0=5.0, adaptativo=False, tau_actuador=0.0, horizonte=1)
+    for s in rng.uniform(-1, 1, (200, 2)):
+        assert np.allclose(a(s), b(s))
+
+
+def banda_con_actuador(esquema, k1, tau=0.04, Ts=0.005, N=2, lam=15.0, T=20.0, sub=10,
+                       D_planta=0, D_modelo=0):
+    """Canal de actitud: th'' = tau_m + d,  tau_m' = (tau_c - tau_m)/tau,  tau_c = -(lam w + u).
+    s = -(w + lam th). El retardo afecta a todo el par, también al término lam w.
+    El par comandado llega D_planta muestras tarde. Devuelve max|s| en t > 10 s."""
+    c = STA(1, Ts, esquema, k1_0=k1, adaptativo=False, tau_actuador=tau, horizonte=N,
+            retardo=D_modelo)
+    th, w, tm, t, h, S = 0.1, 0.0, 0.0, 0.0, Ts / sub, []
+    cola = [0.0] * D_planta
+    for _ in range(int(T / Ts)):
+        s = -(w + lam * th)
+        cola.append(-(lam * w + c(np.array([s]))[0]))
+        tc = cola.pop(0)
+        if not np.isfinite(th) or abs(th) > 10:
+            return np.inf
+        for _ in range(sub):
+            th, w = th + h * w, w + h * (tm + 1 + 0.5 * np.sin(2 * np.pi * 0.2 * t))
+            tm += h * (tc - tm) / tau
+            t += h
+        S.append(s)
+    return np.abs(S[int(10 / Ts):]).max()
+
+
+def test_compensado_recupera_la_insensibilidad_a_la_ganancia():
+    assert np.isclose(banda_con_actuador('compensado', 10.0), banda_con_actuador('compensado', 120.0), rtol=0.05)
+    assert banda_con_actuador('implicito', 120.0) > 3 * banda_con_actuador('implicito', 10.0)
+
+
+def test_retardo_en_el_modelo_permite_horizonte_corto():
+    # Con dos muestras de retardo puro y N = 2, el compensado sin modelo del retardo se
+    # degrada con la ganancia; con el retardo en el modelo vuelve a ser insensible.
+    sin = [banda_con_actuador('compensado', k, D_planta=2) for k in (10.0, 120.0)]
+    con = [banda_con_actuador('compensado', k, D_planta=2, D_modelo=2) for k in (10.0, 120.0)]
+    assert sin[1] > 3 * sin[0]
+    assert np.isclose(con[0], con[1], rtol=0.05)

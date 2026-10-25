@@ -71,6 +71,10 @@ class Mezclador:
         f = np.clip(self.fuerzas(T, tau), 0.0, self.f_max)
         return np.sqrt(f / self.kf)
 
+    def realizado(self, w):
+        """Empuje y pares que producen las velocidades de rotor w (ya saturadas)."""
+        return self.B @ (self.kf * np.asarray(w) ** 2)
+
 
 def quintica(s):
     """Perfil suave 0 -> 1 y sus dos derivadas respecto a s en [0, 1]."""

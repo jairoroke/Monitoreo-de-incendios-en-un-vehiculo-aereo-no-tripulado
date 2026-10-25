@@ -84,6 +84,41 @@ Observaciones relevantes:
 3. La velocidad que publica Gazebo es un promedio de 10 muestras (≈ 4.5 ms de retraso a
    1 kHz); es parte de la dinámica no modelada.
 
+## STA en el lazo de actitud y esquema compensado (24 oct 2026)
+
+Con `actitud:=sta` el lazo interno también es un STA: por eje del cuerpo,
+s_R = −(ω + λ_R e_R) y τ = −J(λ_R ω + u_R), de modo que s_R' = u_R + d_R. Parámetros
+`esquema_actitud`, `lambda_actitud`, `k1_actitud`, `adaptativo_actitud`, `mu_actitud`,
+`tau_motor` y `horizonte_actitud` (sección `controlador_sta`).
+
+El esquema `compensado` (en `sta.py`) mete la dinámica de primer orden del motor
+(τ_m) en la inclusión implícita. Con u_k retenido durante H = N·Ts, el promedio de u_m es
+g·u_k + (1 − g)·u_m,k, con g = 1 − (τ_m/H)(1 − e^(−H/τ_m)), y la inclusión conserva la forma
+s~ + H k1 |s~|^½ ξ + H² k2 ξ = s_k + H ν_k: la solución cerrada es la misma. El modelo u_m se
+corrige con el par que de verdad producen los rotores ya saturados (`Mezclador.realizado`).
+
+Por qué: en x, y el error con el PD de actitud lo dominaba el ancho de banda del lazo
+interno (ω_n ≈ 10 rad/s en el Tarot), no la discretización (`prototipos/eje.py`). En
+actitud, con el motor de 40 ms, el implícito deja de ser insensible a la ganancia porque el
+retardo también afecta al término λ_R ω del par (`test/test_sta.py`). El actuador
+identificado en Gazebo es primer orden de 40 ms más una muestra de retardo puro.
+
+Campaña (`scripts/campana_actitud.sh`, `scripts/resumen_actitud.py`): Tarot 650, órbita
+con viento, Ts = 5 ms, t > 20 s. "adapt" = Shtessel con μ = 0.01 (k1 llega a 200).
+
+| Actitud | k1 = 10 | k1 = 40 | k1 = 120 | adaptativa |
+|---|---|---|---|---|
+| PD (línea base) | 1.11° · 4.96 cm | | | |
+| STA explícito | 0.71° · 1.25 cm | 1.95° · 6.1 cm | 17.8° · se cae | 20.3° · se cae |
+| STA implícito | 0.71° · 1.34 cm | 1.38° · 1.7 cm | 3.17° · 1.6 cm (rotores saturados) | 22.8° · se cae |
+| STA compensado, N = 8 | 0.68° · 1.73 cm | 0.66° · 1.68 cm | 0.66° · 1.68 cm | 0.66° · 1.68 cm |
+
+(error de actitud RMS · error de posición RMS). El compensado no satura los rotores y su
+chattering es de 1 a 2 rad/s por muestra (explícito/implícito: 6 a 170). Con N = 4 el lazo
+queda al borde (rotores saturados 40–80 % del tiempo): el horizonte debe cubrir el retardo
+puro más el filtro de velocidad, además de τ_m. Con k1 = 10, el explícito da menos error de
+posición que el compensado (1.25 frente a 1.73 cm). Figura: `~/corridas/campana_actitud/sensibilidad_ganancia.png`.
+
 ## Cámara del dron
 
 Con `mision:=busqueda` la ventana trae solo el panel "Detección YOLO" (`config/gazebo_gui_yolo.config`); en las demás misiones trae el panel "Cámara del dron" (a la derecha), que muestra en vivo la

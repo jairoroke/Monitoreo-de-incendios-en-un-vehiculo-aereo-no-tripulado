@@ -70,7 +70,8 @@ class ControladorPD(Node):
             self.archivo = open(v['archivo_csv'], 'w', newline='')
             self.csv = csv.writer(self.archivo)
             self.csv.writerow(['t', 'x', 'y', 'z', 'xd', 'yd', 'zd', 'phi', 'theta', 'psi',
-                               'psid', 'T', 'tx', 'ty', 'tz', 'w0', 'w1', 'w2', 'w3']
+                               'psid', 'T', 'tx', 'ty', 'tz', 'w0', 'w1', 'w2', 'w3',
+                               'eRx', 'eRy', 'eRz']
                               + self.columnas_extra())
         self.get_logger().info(
             f"{self.descripcion()} listo: Ts = {self.Ts} s, misión = {v['mision']}")
@@ -91,6 +92,14 @@ class ControladorPD(Node):
     def aceleracion(self, ep, ev, ad):
         """Aceleración deseada del lazo externo (sin gravedad)."""
         return ad + self.Kp * ep + self.Kd * ev
+
+    def par(self, eR, w):
+        """Lazo interno: PD sobre SO(3), sin el término giroscópico."""
+        return -self.KR * eR - self.Kw * w
+
+    def aplicado(self, tau, w):
+        """Par que de verdad se aplicó tras saturar los rotores (sin el giroscópico)."""
+        pass
 
     def _consigna(self, msg):
         tr, ve, ac = msg.transforms[0], msg.velocities[0], msg.accelerations[0]
@@ -144,11 +153,11 @@ class ControladorPD(Node):
         b2 /= np.linalg.norm(b2)
         Rd = np.column_stack([np.cross(b2, b3), b2, b3])
 
-        # Lazo interno: PD sobre SO(3).
         eR = 0.5 * vee(Rd.T @ R - R.T @ Rd)
-        tau = -self.KR * eR - self.Kw * w + np.cross(w, self.J @ w)
+        tau = self.par(eR, w) + np.cross(w, self.J @ w)
 
         wr = self.mezclador.velocidades(T, tau)
+        self.aplicado(self.mezclador.realizado(wr)[1:] - np.cross(w, self.J @ w), w)
         cmd = Actuators()
         cmd.header.stamp = self.get_clock().now().to_msg()
         cmd.velocity = [float(x) for x in wr]
@@ -166,7 +175,7 @@ class ControladorPD(Node):
 
         if self.csv:
             phi, th, psi = rot_a_euler(R)
-            self.csv.writerow([f'{t:.4f}', *p, *pd, phi, th, psi, psid, T, *tau, *wr,
+            self.csv.writerow([f'{t:.4f}', *p, *pd, phi, th, psi, psid, T, *tau, *wr, *eR,
                                *self.valores_extra()])
 
     def destroy_node(self):
