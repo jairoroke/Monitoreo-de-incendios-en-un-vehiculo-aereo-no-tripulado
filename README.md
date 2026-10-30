@@ -3,6 +3,25 @@
 Monitoreo de incendios forestales con un vehículo aéreo no tripulado: control super-twisting
 adaptativo con discretización implícita, detección del fuego con YOLO26 y búsqueda autónoma.
 
+<!-- demo -->
+## Demostración
+
+![Misión de búsqueda: el Tarot 650 barre el bosque, YOLO26 detecta humo y fuego y el dron orbita el foco](docs/demo/demo.gif)
+
+Video de la cámara del dron con las detecciones de YOLO26 (acelerado): [docs/demo/demo.mp4](docs/demo/demo.mp4)
+
+| Patrulla | Aproximación | Órbita sobre el foco |
+|---|---|---|
+| ![Patrulla](docs/demo/gazebo_patrulla.jpg) | ![Aproximación](docs/demo/gazebo_aproximacion.jpg) | ![Órbita](docs/demo/gazebo_orbita.jpg) |
+
+Cámara del dron durante la órbita: fuego y humo detectados por YOLO26.
+
+![Detección de YOLO26](docs/demo/yolo_orbita.jpg)
+
+Corrida en Ubuntu 24.04 (WSL2), ROS 2 Jazzy y Gazebo Harmonic: foco confirmado en (105.1, 135.0) m frente al real (105, 135), con 55 % del bosque cubierto.
+
+<!-- /demo -->
+
 Autor: Dr. Jairo Olguín Roque (FES Acatlán, UNAM).
 
 Libro de la simulación, explicado desde cero (drones, control, visión, autonomía, instalación y uso):
